@@ -1,0 +1,3 @@
+[submodule "api/third_party/pansou"]
+	path = api/third_party/pansou
+	url = https://github.com/a3318375/pansou.git

@@ -1,0 +1,21 @@
+# Go
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/bin/
+/tmp/
+
+# Local config and data
+.env
+*.db
+*.db-shm
+*.db-wal
+/data/
+
+# IDE
+.idea/
+.vscode/
+*.key

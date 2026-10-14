@@ -1,0 +1,8 @@
+services:
+  media-center:
+    image: ghcr.io/a3318375/mediahub:latest
+    ports:
+      - "5173:18080"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

@@ -1,0 +1,16 @@
+node_modules/
+dist/
+data/
+bin/
+tmp/
+*.exe
+*.log
+*.db
+*.db-shm
+*.db-wal
+*.key
+.env
+.env.*
+.idea/
+.codex/
+.agents/
