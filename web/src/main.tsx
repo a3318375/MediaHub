@@ -15,7 +15,7 @@ async function startApp() {
   }
   clearResourceSearchResult(sessionStorage)
 
-  if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCKS !== "false") {
+  if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCKS === "true") {
     const { worker } = await import("@/mocks/browser")
     await worker.start({ onUnhandledFrame: "bypass" })
   }

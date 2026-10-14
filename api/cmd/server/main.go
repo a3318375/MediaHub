@@ -61,7 +61,7 @@ func run() error {
 	schedulerDone := make(chan struct{})
 	go func() {
 		defer close(schedulerDone)
-		updater.Run(schedulerCtx, func(message string) { _ = db.RecordLog("anime", "WARN", message) })
+		updater.Run(schedulerCtx, func(message string) { _ = db.RecordLog("刷新", "WARN", message) })
 	}()
 	defer func() { stopScheduler(); <-schedulerDone }()
 	downloads := download.New(db)
@@ -70,7 +70,7 @@ func run() error {
 	downloadDone := make(chan struct{})
 	go func() {
 		defer close(downloadDone)
-		downloads.Run(downloadCtx, func(message string) { _ = db.RecordLog("download", "WARN", message) })
+		downloads.Run(downloadCtx, func(message string) { _ = db.RecordLog("下载", "WARN", message) })
 	}()
 	defer func() { stopDownloads(); <-downloadDone }()
 	organizer := &organize.Service{Store: db, Factory: downloads.Factory}
@@ -84,7 +84,7 @@ func run() error {
 	organizeDone := make(chan struct{})
 	go func() {
 		defer close(organizeDone)
-		organizer.Run(organizeCtx, func(message string) { _ = db.RecordLog("organize", "WARN", message) })
+		organizer.Run(organizeCtx, func(message string) { _ = db.RecordLog("整理", "WARN", message) })
 	}()
 	defer func() { stopOrganize(); <-organizeDone }()
 	server := &http.Server{Addr: addr, Handler: handler, ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}

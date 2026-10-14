@@ -88,6 +88,11 @@ func (s *Store) CreateDownload(account, hash string, r download.Request) (downlo
 	if _, err = tx.Exec(`INSERT INTO download_references(task_id,reference_key,data) VALUES(?,?,?) ON CONFLICT DO NOTHING`, t.ID, download.ReferenceKey(r.Reference), string(data)); err != nil {
 		return t, false, err
 	}
+	if created {
+		if err = logDownloadState(tx, t, r.Reference.Media.Title); err != nil {
+			return t, false, err
+		}
+	}
 	if err = tx.Commit(); err != nil {
 		return t, false, err
 	}
@@ -191,6 +196,13 @@ func (s *Store) SaveDownload(t download.Task) error {
 	}
 	if state != t.State || code != t.ErrorCode {
 		if _, err = tx.Exec(`INSERT INTO download_events(task_id,state,error_code,occurred_at) VALUES(?,?,?,?)`, t.ID, t.State, t.ErrorCode, t.UpdatedAt); err != nil {
+			return err
+		}
+		var title string
+		if err = tx.QueryRow(`SELECT COALESCE(json_extract(data,'$.media.title'),'') FROM download_references WHERE task_id=? ORDER BY reference_key LIMIT 1`, t.ID).Scan(&title); err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		if err = logDownloadState(tx, t, title); err != nil {
 			return err
 		}
 	}

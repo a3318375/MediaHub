@@ -105,6 +105,9 @@ func (s *Store) createAnime(d anime.Draft, automatic bool) (anime.Subscription, 
 			return v, e
 		}
 	}
+	if e = recordBusinessLog(tx, "订阅", "INFO", "添加订阅：《"+v.Title+"》"); e != nil {
+		return v, e
+	}
 	e = tx.Commit()
 	return v, e
 }
@@ -122,6 +125,7 @@ func (s *Store) SetAnimeEnabled(id string, enabled bool) (anime.Subscription, er
 	if e = json.Unmarshal([]byte(raw), &v); e != nil {
 		return v, e
 	}
+	changed := v.Enabled != enabled
 	v.Enabled = enabled
 	v.UpdatedAt = time.Now().UTC().Format(time.RFC3339Nano)
 	b, e := json.Marshal(v)
@@ -130,6 +134,15 @@ func (s *Store) SetAnimeEnabled(id string, enabled bool) (anime.Subscription, er
 	}
 	if _, e = tx.Exec(`UPDATE anime_subscriptions SET data=?,updated_at=? WHERE id=?`, string(b), v.UpdatedAt, id); e != nil {
 		return v, e
+	}
+	if changed {
+		verb := "暂停订阅"
+		if enabled {
+			verb = "恢复订阅"
+		}
+		if e = recordBusinessLog(tx, "订阅", "INFO", verb+"：《"+v.Title+"》"); e != nil {
+			return v, e
+		}
 	}
 	return v, tx.Commit()
 }
@@ -165,6 +178,8 @@ func (s *Store) SaveAnimeRefresh(v anime.Subscription) (anime.Subscription, erro
 	if e = json.Unmarshal([]byte(raw), &current); e != nil {
 		return v, e
 	}
+	previousCheck := current.LastCheckedAt
+	previousMetadata := current.LastMetadataAt
 	current.LatestEpisode = v.LatestEpisode
 	current.KnownEpisodes = v.KnownEpisodes
 	current.Completed = v.Completed
@@ -197,6 +212,20 @@ func (s *Store) SaveAnimeRefresh(v anime.Subscription) (anime.Subscription, erro
 	}
 	if v.Discovered != nil && v.LastError == "" {
 		if e = saveAnimeCandidates(tx, current, v.Discovered); e != nil {
+			return current, e
+		}
+	}
+	if current.LastCheckedAt != previousCheck {
+		message, level := "刷新订阅完成：《"+current.Title+"》", "INFO"
+		if current.LastError != "" {
+			message = "刷新订阅失败：《" + current.Title + "》；" + current.LastError
+			level = "ERROR"
+		}
+		if e = recordBusinessLog(tx, "刷新", level, message); e != nil {
+			return current, e
+		}
+	} else if current.LastMetadataAt != previousMetadata {
+		if e = recordBusinessLog(tx, "刷新", "INFO", "更新作品信息：《"+current.Title+"》"); e != nil {
 			return current, e
 		}
 	}

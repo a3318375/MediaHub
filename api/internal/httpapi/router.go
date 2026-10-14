@@ -1,7 +1,6 @@
 package httpapi
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -66,7 +65,6 @@ func NewRouterWithOrganizer(db *store.Store, updater *animesync.Updater, downloa
 	organizer.Resolve = api.resolveOrganizeMedia
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery())
-	router.Use(api.requestLog())
 	router.GET("/api/health", func(c *gin.Context) { c.JSON(http.StatusOK, gin.H{"status": "ok"}) })
 
 	auth := router.Group("/api/auth")
@@ -113,35 +111,6 @@ func NewRouterWithOrganizer(db *store.Store, updater *animesync.Updater, downloa
 		v1.POST("/resources/check", resourceSearch[2])
 	}
 	return router
-}
-
-func (a *API) requestLog() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		started := time.Now()
-		c.Next()
-		if strings.HasPrefix(c.Request.URL.Path, "/api/media/") && c.Request.Context().Err() == context.Canceled {
-			return
-		}
-		status := c.Writer.Status()
-		level := "INFO"
-		if status >= 500 {
-			level = "ERROR"
-		} else if status >= 400 {
-			level = "WARN"
-		}
-		source := "api"
-		if strings.HasPrefix(c.Request.URL.Path, "/api/auth") {
-			source = "auth"
-		}
-		if strings.HasPrefix(c.Request.URL.Path, "/api/settings") {
-			source = "settings"
-		}
-		if strings.HasPrefix(c.Request.URL.Path, "/api/logs") {
-			source = "logs"
-		}
-		message := c.Request.Method + " " + c.Request.URL.Path + " → " + http.StatusText(status) + " (" + time.Since(started).Round(time.Millisecond).String() + ")"
-		_ = a.store.RecordLog(source, level, message)
-	}
 }
 
 func (a *API) listLogs(c *gin.Context) {

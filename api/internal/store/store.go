@@ -298,7 +298,7 @@ func (s *Store) ListLogs(level, source, query string, limit int) ([]LogEntry, er
 	if limit < 1 || limit > 500 {
 		limit = 200
 	}
-	rows, err := s.db.Query(`SELECT id, occurred_at, source, level, message FROM activity_logs WHERE (?='' OR level=?) AND (?='' OR source=?) AND (?='' OR message LIKE '%' || ? || '%') ORDER BY id DESC LIMIT ?`, level, level, source, source, query, query, limit)
+	rows, err := s.db.Query(`SELECT id, occurred_at, source, level, message FROM activity_logs WHERE source IN ('订阅','刷新','下载','转存','整理') AND (?='' OR level=?) AND (?='' OR source=?) AND (?='' OR message LIKE '%' || ? || '%') ORDER BY id DESC LIMIT ?`, level, level, source, source, query, query, limit)
 	if err != nil {
 		return nil, err
 	}

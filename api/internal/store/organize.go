@@ -192,6 +192,10 @@ func (s *Store) OrganizePlans(active bool) ([]organize.Plan, error) {
 	return out, rows.Err()
 }
 func (s *Store) SaveOrganizePlan(p organize.Plan) error {
+	previous, e := s.OrganizePlan(p.ID)
+	if e != nil {
+		return e
+	}
 	p.UpdatedAt = time.Now().UTC().Format(time.RFC3339Nano)
 	raw, e := json.Marshal(p)
 	if e != nil {
@@ -204,6 +208,23 @@ func (s *Store) SaveOrganizePlan(p organize.Plan) error {
 	n, e := result.RowsAffected()
 	if e == nil && n != 1 {
 		return organize.ErrConflict
+	}
+	if e == nil {
+		if previous.State != p.State {
+			labels := map[string]string{"running": "开始整理", "paused": "整理暂停", "completed": "整理完成", "completed_with_issues": "整理完成，部分项目需处理"}
+			if label, ok := labels[p.State]; ok {
+				level := "INFO"
+				if p.State == "paused" || p.State == "completed_with_issues" {
+					level = "WARN"
+				}
+				_ = s.RecordLog("整理", level, label+"："+p.Rule.Name)
+			}
+		}
+		for i, action := range p.Actions {
+			if action.State == "completed" && (i >= len(previous.Actions) || previous.Actions[i].State != "completed") {
+				_ = s.RecordLog("整理", "INFO", "整理文件完成："+action.Source.Name+" → "+action.TargetName)
+			}
+		}
 	}
 	return e
 }

@@ -1,6 +1,9 @@
 node_modules/
 dist/
-data/
+/data/
+/api/data/
+.ci-repro/
+.local-backups/
 bin/
 tmp/
 *.exe
