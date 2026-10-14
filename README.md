@@ -1,79 +1,167 @@
 # MediaHub
 
-Media search, 115 share transfers and offline downloads, anime subscriptions,
-and media organization in one application.
+一个可以自己部署的媒体管理中心，把找片、搜资源、追番、115 下载转存和文件整理放到一起。
 
-## Layout
+从影视探索里找到想看的作品，打开详情查资料，再搜索网盘资源；追番时添加 RSS 订阅，持续跟踪新集数；把资源下载或转存到 115 后，再按作品、季集信息整理到媒体目录。
 
-- `web/`: React and Vite frontend.
-- `api/`: Go backend with embedded PanSou search.
-- `api/third_party/pansou/`: pinned submodule from `a3318375/pansou`.
-- `Dockerfile`: frontend and backend multi-stage image build.
-- `docker-compose.yml`: single-container deployment.
+**项目正在持续开发，欢迎试用、反馈问题和参与二次开发。** 当前已提供基础业务功能，完整自动化流程和使用体验还在完善。
 
-## Deploy
+![影视探索](docs/images/discover.png)
 
-After the GitHub Actions image build succeeds:
+## 能做什么
+
+| 功能 | 你可以用它做什么 |
+| --- | --- |
+| 影视探索 | 浏览 TMDB、豆瓣、Bangumi、AniList 等来源的作品，按类型、地区、年份和评分等条件寻找想看的内容；具体筛选能力随来源不同 |
+| 作品详情与榜单 | 查看简介、评分、海报和演职员信息，通过榜单发现作品，并从详情进入资源搜索 |
+| 网盘资源搜索 | 使用内置 PanSou 聚合搜索资源，按网盘类型查看结果、复制分享链接，并调整搜索来源 |
+| 动漫订阅 | 添加 RSS 订阅，配置字幕组、匹配规则和集数范围，查看发现的资源、更新进度，手动刷新或暂停订阅 |
+| 115 下载与转存 | 提交离线下载，读取 115 分享目录并选择文件转存，查看任务状态及失败原因 |
+| 媒体整理 | 配置未整理目录和目标目录，预览后执行整理，按规则改名、直接移动文件，并清理空文件夹；支持 Cron 定时整理 |
+| Emby 看板 | 连接自己的 Emby，查看媒体库概况、最近添加和继续观看内容 |
+| 中文业务日志 | 查看添加订阅、刷新、下载、转存和整理的操作与结果，支持筛选、搜索和导出 |
+| 账号与设置 | 创建自己的管理员账号，集中管理服务连接、搜索配置和 API 密钥；敏感凭证在服务端加密保存 |
+
+搜索支持多个网盘来源，当前下载、分享转存和整理主要围绕 **115** 实现。服务连接需要填写对应配置，实际结果也取决于来源可用性和服务器网络。
+
+## 页面预览
+
+### 作品详情
+
+查看作品资料和主要演职员，直接搜索相关网盘资源。
+
+![作品详情](docs/images/media-detail.png)
+
+### 资源搜索
+
+集中查看不同来源的搜索结果，按网盘分类查找所需资源。
+
+![资源搜索](docs/images/resource-search.png)
+
+### 动漫订阅
+
+把正在追的番剧放进订阅列表，查看资源更新情况，按自己的规则筛选集数。
+
+![动漫订阅](docs/images/anime-subscriptions.png)
+
+### 中文业务日志
+
+按时间查看业务操作和执行结果，方便了解自动任务做了什么。
+
+![业务日志](docs/images/business-logs.png)
+
+### 全局设置
+
+统一配置媒体服务、115 网盘、整理目录、搜索来源和通知参数。
+
+![全局设置](docs/images/settings.png)
+
+### 账号登录
+
+首次部署创建自己的管理员账号，之后使用该账号登录。
+
+![登录页面](docs/images/login.png)
+
+截图来自开发版本，部分页面仍显示旧名称 FRAME，界面和功能会随版本更新。
+
+## Docker 部署
+
+前后端已经打包到一个镜像中，使用 Docker Compose 即可启动。
+
+```yaml
+services:
+  media-center:
+    image: ghcr.io/a3318375/mediahub:latest
+    ports:
+      - "5173:18080"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+```
+
+仓库根目录已有 `docker-compose.yml`。取得该文件后，在所在目录执行：
 
 ```sh
-git clone --recurse-submodules https://github.com/a3318375/MediaHub.git
-cd MediaHub
 docker compose pull
 docker compose up -d
 ```
 
-Open `http://SERVER_IP:5173`. The first visit creates the administrator account.
-Persistent database, encryption key and cache are stored in `./data`.
-Preserve the entire data directory when upgrading or migrating.
-Do not run multiple API instances against the same data directory.
-Private GHCR packages require `docker login ghcr.io` with package read access.
+打开 `http://服务器IP:5173`，创建管理员账号即可进入系统。服务器的 5173 端口需要可访问；如端口已被占用，修改映射左侧的端口。
 
-## Development
+### 开始使用
+
+1. 在全局设置中配置需要使用的服务：TMDB、Emby 和 115 可以按需填写。
+2. 从影视探索或资源搜索开始查找作品与资源。
+3. 使用动漫订阅跟踪新集数，配置规则和下载范围。
+4. 在媒体整理中选择未整理目录与目标目录，先预览，再执行；需要自动整理时填写 Cron。
+5. 在下载记录和日志中心查看处理进度与结果。
+
+账号、订阅、任务、配置和加密密钥都保存在挂载的 `./data` 中。升级或迁移时保留整个目录，不要只复制数据库；两个实例不要同时使用同一个数据目录。
+
+### 更新版本
 
 ```sh
-git submodule update --init --recursive
+docker compose pull
+docker compose up -d
 ```
 
-On Windows, start the API in one terminal:
+镜像若为私有，需要先使用具备读取权限的账号执行 `docker login ghcr.io`。
+
+## 当前还在做
+
+- **Telegram 通知**：配置保存和消息发送已经验证，正在接入下载、转存、整理完成或失败的自动通知，以及页面测试入口。
+- **115 操作体验**：优化目录选择速度，减少重复读取和等待，继续完善状态提示。
+- **自动化流程验证**：下载、转存和整理已有实现，持续验证真实资源、失败恢复、目录冲突和空目录清理等情况。
+- **追剧日历与界面完善**：日历入口及相关展示仍在完善，逐步统一 MediaHub 品牌与页面文案。
+
+设置页面出现某个选项，不代表对应功能已完整接入。当前以实际可执行的业务流程为准，开发进度会继续更新。
+
+## 参与开发
+
+前后端放在同一个仓库，方便一起修改和构建：
+
+```text
+MediaHub/
+├── web/                  # React 前端
+├── api/                  # Go 后端
+│   └── third_party/pansou/ # PanSou 子模块
+├── docs/images/          # README 截图
+├── Dockerfile
+├── docker-compose.yml
+└── README.md
+```
+
+```sh
+git clone --recurse-submodules https://github.com/a3318375/MediaHub.git
+cd MediaHub
+```
+
+Windows 本地开发，分别打开两个终端：
 
 ```powershell
+# 后端
 cd api
 ./scripts/dev.ps1
 ```
 
-Start the frontend in another terminal:
-
 ```sh
+# 前端
 cd web
 pnpm install --frozen-lockfile
 pnpm dev --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-The frontend proxies API requests to `127.0.0.1:18080`.
-See `api/README.md` for API details and settings.
+前端默认把 API 请求转发到 `127.0.0.1:18080`，本地开发数据保存在仓库根目录 `data/`。默认连接真实后端，演示模拟模式需显式设置 `VITE_ENABLE_MOCKS=true`。
 
-## Build Locally
-
-Run from the repository root:
+本地构建合并镜像，在仓库根目录执行：
 
 ```sh
 docker build -f Dockerfile --build-context web=./web -t mediahub:local ./api
 docker run --rm -p 5175:18080 -v mediahub-test-data:/data mediahub:local
 ```
 
-The trial uses an independent volume and port 5175.
-The final container runs one Go service for frontend and API.
+此试运行使用独立数据卷，访问 `http://localhost:5175`。推送 `main` 后，GitHub Actions 会自动构建并发布 `latest` 和提交版本镜像。
 
-## GitHub Actions
+## 致谢
 
-Pushes to `main` or manual workflow runs build both projects and publish
-`ghcr.io/a3318375/mediahub:latest` and a commit-specific tag.
-No cross-repository frontend token is needed.
-
-To upgrade an existing deployment:
-
-```sh
-git pull
-docker compose pull
-docker compose up -d
-```
+资源搜索基于 [PanSou](https://github.com/fish2018/pansou)，项目通过固定版本的 fork 子模块集成。115 接口适配使用 [115driver](https://github.com/SheltonZhu/115driver)，前端使用 React、Vite 和 shadcn/ui。
