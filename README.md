@@ -1,9 +1,15 @@
 # MediaHub
 
-缝合大师，一款0人工作品。
-基于网盘的动漫和电影的自动化路线，一般是ani-rss + moviePolit(tgToDriver) + pansoou + openlist + emby。
+**缝合大师，一款0人工作品。**
+
+基于网盘的动漫和电影的自动化路线，一般是：
+
+`ani-rss` + `moviePolit(tgToDriver)` + `pansoou` + `openlist` + `emby`。
+
 我部署了这么一堆东西，太过于杂乱了，原理又不复杂，所以就让ai写了一个。
-我本身是搞java的，没啥审美技术又一般，所以就让ai，用shadcn（react）  + go写的。
+
+我本身是搞java的，没啥审美技术又一般，所以就让ai，用shadcn（react） + go写的。
+
 我其实不知道模仿其他人的代码，侵权不侵权，假如侵权，可以通知我，我隐藏起来。
 
 **项目正在持续开发，欢迎试用、反馈问题和参与二次开发。** 当前已提供基础业务功能，完整自动化流程和使用体验还在完善。
