@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"media-center/internal/download"
 	"media-center/internal/pan115"
+	"media-center/internal/store"
 )
 
 func downloadFailure(c *gin.Context, err error) {
@@ -16,6 +17,8 @@ func downloadFailure(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, download.ErrNotFound):
 		fail(c, 404, "下载任务不存在")
+	case errors.Is(err, store.ErrNotFound):
+		fail(c, 503, "请先在设置中配置 115 Cookie")
 	case errors.Is(err, download.ErrConflict):
 		fail(c, 409, "任务已变更或同一资源的目标目录不同，请刷新后核对")
 	case errors.Is(err, download.ErrQueueFull):

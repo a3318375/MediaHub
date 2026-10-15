@@ -148,3 +148,74 @@ test("independent demo performs no network requests and resource URLs reject exe
     "magnet:?xt=urn:btih:test",
   );
 });
+
+test("collecting plugin results bypasses frontend cache without refreshing the upstream search", async () => {
+  const bodies = [];
+  globalThis.fetch = async (url, init) => {
+    if (String(url).endsWith("/meta"))
+      return Response.json({
+        data: {
+          selection: { channels: [], plugins: ["test"], cloudTypes: [] },
+        },
+      });
+    bodies.push(JSON.parse(init.body));
+    return Response.json({
+      data: { total: bodies.length, items: [], linksByCloud: {} },
+    });
+  };
+  const live = api.service({ mode: "live", name: "test", token: "fixture" });
+  assert.equal((await live.search("async-test")).total, 1);
+  assert.equal((await live.search("async-test")).total, 1);
+  assert.equal((await live.search("async-test", false, true)).total, 2);
+  assert.equal(bodies.length, 2);
+  assert.ok(
+    bodies.every((body) => body.refresh === false && body.source === "plugin"),
+  );
+});
+
+test("real backend discovery restrictions are respected when searching after filtering", () => {
+  assert.deepEqual(
+    api.discoveryQuery({
+      source: "tmdb",
+      mediaType: "movie",
+      query: "Dune",
+      pageSize: "24",
+      genre: "878",
+      region: "US",
+      sort: "date.desc",
+      year: "2024",
+    }),
+    {
+      source: "tmdb",
+      mediaType: "movie",
+      query: "Dune",
+      pageSize: "20",
+      year: "2024",
+    },
+  );
+  const bangumi = api.discoveryQuery({
+    source: "bangumi",
+    mediaType: "anime",
+    query: "测试",
+    year: "2024",
+    month: "1",
+    sort: "rank",
+  });
+  assert.equal(bangumi.year, undefined);
+  assert.equal(bangumi.month, undefined);
+  assert.equal(bangumi.sort, undefined);
+});
+
+test("merged PanSou results tolerate omitted items and empty cloud maps", () => {
+  assert.deepEqual(api.normalizeResources({ total: 0 }), {
+    total: 0,
+    items: [],
+    linksByCloud: {},
+  });
+  const r = api.normalizeResources({
+    total: 1,
+    linksByCloud: { magnet: [{ cloud: "magnet", url: "magnet:?xt=fixture" }] },
+  });
+  assert.deepEqual(r.items, []);
+  assert.equal(r.linksByCloud.magnet.length, 1);
+});

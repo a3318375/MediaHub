@@ -132,3 +132,41 @@ func TestDownloadsAuthenticatedSharedQueueAndCancellation(t *testing.T) {
 		t.Fatal(w.Code, w.Body)
 	}
 }
+
+func TestMissing115CredentialsHaveActionableServiceError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	db, err := store.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	u, err := db.CreateUser("admin", "admin", "unused")
+	if err != nil {
+		t.Fatal(err)
+	}
+	const token = "missing-credential-fixture"
+	if err = db.CreateSession(store.HashToken(token), u.ID, time.Now().Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	r := NewRouter(db)
+	for _, tc := range []struct{ method, path, body string }{
+		{"GET", "/api/v1/115/directories?parentId=0", ""},
+		{"POST", "/api/v1/115/share/list", `{"url":"https://115.com/s/abcd","receiveCode":"1234","directoryId":"0"}`},
+		{"POST", "/api/v1/downloads", `{"kind":"offline","url":"magnet:?xt=urn:btih:0123456789abcdef0123456789abcdef01234567","directoryId":"123","reference":{"source":"manual","media":{"title":"Integration"}}}`},
+	} {
+		req := httptest.NewRequest(tc.method, tc.path, bytes.NewBufferString(tc.body))
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		if w.Code != 503 {
+			t.Fatalf("%s: %d %s", tc.path, w.Code, w.Body.String())
+		}
+		var result struct {
+			Message string `json:"message"`
+		}
+		if json.Unmarshal(w.Body.Bytes(), &result) != nil || result.Message != "请先在设置中配置 115 Cookie" {
+			t.Fatalf("%s: unhelpful response %s", tc.path, w.Body.String())
+		}
+	}
+}

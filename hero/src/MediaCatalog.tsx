@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Card, Chip, Input } from "@heroui/react";
+import { Button, Card, Chip, Input, Tabs } from "@heroui/react";
 import {
   Check,
   ChevronLeft,
@@ -9,8 +9,19 @@ import {
   RefreshCw,
   Search,
 } from "lucide-react";
-import { Overlay } from "./App";
 import { image, type Platform } from "./media-service";
+import {
+  optionLabel,
+  regionLabels,
+  commonGenres,
+  movieGenres,
+  tvGenres,
+} from "./discovery-labels";
+import {
+  saveMediaSearchHistory,
+  readMediaSearchHistory,
+} from "./lib/resource-search";
+import { Field, SelectField } from "./ManagementUI";
 import type {
   MediaSummary,
   MediaDetail,
@@ -20,7 +31,7 @@ import {
   errorText,
   FilterTabs,
   PosterGrid,
-  Poster,
+  MediaImage,
   kindLabels,
   type API,
 } from "./MediaUI";
@@ -97,24 +108,35 @@ export function Discovery({
   api,
   demo,
   open,
+  search: searchResource,
+  subscribe,
 }: {
   ranking: boolean;
   api: API;
   demo: boolean;
   open: (m: MediaSummary) => void;
+  search: (m: MediaSummary) => void;
+  subscribe: (m: MediaSummary) => void;
 }) {
   const [source, setSource] = useState("tmdb");
   const [chart, setChart] = useState("movie_day");
   const [type, setType] = useState("movie");
   const [region, setRegion] = useState("US");
+  const [monetization, setMonetization] = useState("flatrate");
+  const [platformQuery, setPlatformQuery] = useState("");
   const [platform, setPlatform] = useState("");
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [platformError, setPlatformError] = useState("");
   const [query, setQuery] = useState("");
   const [search, setSearch] = useState("");
+  const [history, setHistory] = useState(() =>
+    readMediaSearchHistory(localStorage),
+  );
   const [capabilities, setCapabilities] = useState<ProviderCapabilities[]>([]);
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [page, setPage] = useState(1);
+  const [total, setTotal] = useState<number | null>(null);
+  const [totalCapped, setTotalCapped] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [items, setItems] = useState<MediaSummary[]>([]);
   const [busy, setBusy] = useState(true);
@@ -174,7 +196,7 @@ export function Discovery({
     }
     const name =
       source === "streaming"
-        ? `platform_${type}_${region}_${platform}_flatrate`
+        ? `platform_${type}_${region}_${platform}_${monetization}`
         : chart;
     const load = ranking
       ? api.ranking(
@@ -189,13 +211,17 @@ export function Discovery({
               mediaType: type,
               query: search,
               page: String(page),
-              pageSize: "24",
+              pageSize: "20",
               ...filters,
             },
             revision > 0,
           )
           .then((r) => {
-            if (active) setHasMore(r.hasMore);
+            if (active) {
+              setHasMore(r.hasMore);
+              setTotal(r.total);
+              setTotalCapped(r.totalCapped);
+            }
             return r.items;
           });
     load
@@ -231,6 +257,7 @@ export function Discovery({
     type,
     region,
     platform,
+    monetization,
     search,
     page,
     filters,
@@ -254,7 +281,9 @@ export function Discovery({
       : ["movie", "tv"]);
   return (
     <>
-      <div className="media-source-grid">
+      {!ranking ? <Tabs className="discovery-source-tabs" aria-label="影视探索来源" selectedKey={source} onSelectionChange={key=>chooseSource(String(key))}>
+        <Tabs.ListContainer><Tabs.List aria-label="影视探索来源">{sources.map(([id,label])=><Tabs.Tab key={id} id={id}>{label}<Tabs.Indicator/></Tabs.Tab>)}</Tabs.List></Tabs.ListContainer>
+      </Tabs> : <div className="media-source-grid">
         {sources.map(([id, label]) => (
           <button
             key={id}
@@ -316,7 +345,7 @@ export function Discovery({
             </span>
           </button>
         )}
-      </div>
+      </div>}
       <Card className="media-filter-card">
         {source === "streaming" ? (
           <>
@@ -345,17 +374,50 @@ export function Discovery({
                 ["JP", "日本"],
                 ["KR", "韩国"],
                 ["GB", "英国"],
+                ["CA", "加拿大"],
+                ["AU", "澳大利亚"],
+                ["DE", "德国"],
+                ["FR", "法国"],
+                ["IN", "印度"],
+                ["SG", "新加坡"],
               ]}
               onChange={setRegion}
             />
             {platforms.length > 0 && (
-              <FilterTabs
-                label="平台"
-                value={platform}
-                options={platforms.map((p) => [String(p.id), p.name])}
-                onChange={setPlatform}
-              />
+              <>
+                <Field
+                  label="搜索平台"
+                  value={platformQuery}
+                  onChange={setPlatformQuery}
+                />
+                <SelectField
+                  label="平台"
+                  value={platform}
+                  options={platforms
+                    .filter(
+                      (p) =>
+                        String(p.id) === platform ||
+                        p.name
+                          .toLowerCase()
+                          .includes(platformQuery.toLowerCase()),
+                    )
+                    .map((p) => [String(p.id), p.name])}
+                  onChange={setPlatform}
+                />
+              </>
             )}
+            <FilterTabs
+              label="观看方式"
+              value={monetization}
+              options={[
+                ["flatrate", "订阅"],
+                ["free", "免费"],
+                ["ads", "含广告"],
+                ["rent", "租借"],
+                ["buy", "购买"],
+              ]}
+              onChange={setMonetization}
+            />
             <p className="media-note">
               按 TMDB
               热度排序的平台片库，受地区与订阅服务可用性影响；并非各平台官方 Top
@@ -390,7 +452,7 @@ export function Discovery({
                   ...Array.from(
                     {
                       length: Math.min(
-                        12,
+                        20,
                         capability.filters.year.max -
                           capability.filters.year.min +
                           1,
@@ -462,7 +524,22 @@ export function Discovery({
                     value={filters[key] || ""}
                     options={[
                       ["", "全部"],
-                      ...(values as string[]).map((v) => [v, v]),
+                      ...(values as string[])
+                        .filter(
+                          (v) =>
+                            source !== "tmdb" ||
+                            key !== "genre" ||
+                            [
+                              ...commonGenres,
+                              ...(type === "movie" ? movieGenres : tvGenres),
+                            ].includes(v),
+                        )
+                        .map((v) => [
+                          v,
+                          key === "region"
+                            ? regionLabels[v] || v
+                            : optionLabel(v),
+                        ]),
                     ]}
                     onChange={(v) => {
                       setFilters((old) => {
@@ -481,6 +558,15 @@ export function Discovery({
                 e.preventDefault();
                 setSearch(query.trim());
                 setPage(1);
+                if (query.trim())
+                  setHistory(
+                    saveMediaSearchHistory(localStorage, {
+                      kind: "media",
+                      keyword: query.trim(),
+                      source,
+                      at: Date.now(),
+                    }),
+                  );
               }}
             >
               <Input
@@ -507,7 +593,10 @@ export function Discovery({
             : search
               ? `“${search}” 的结果`
               : "发现作品"}
-          <small>{!busy && `${items.length} 部作品`}</small>
+          <small>
+            {!busy &&
+              `${!ranking && total !== null ? `${total}${totalCapped ? "+" : ""}` : items.length} 部作品`}
+          </small>
         </h2>
         <Button
           variant="secondary"
@@ -538,7 +627,32 @@ export function Discovery({
           ))}
         </div>
       ) : (
-        <PosterGrid items={items} open={open} />
+        <PosterGrid
+          items={items}
+          open={open}
+          search={searchResource}
+          subscribe={subscribe}
+          ranking={ranking}
+        />
+      )}
+      {!ranking && history.length > 0 && (
+        <div className="search-history">
+          <span>最近搜索</span>
+          {history.slice(0, 8).map((h) => (
+            <button
+              key={`${h.keyword}-${h.source}`}
+              onClick={() => {
+                setSource(h.source);
+                setQuery(h.keyword);
+                setSearch(h.keyword);
+                setPage(1);
+                setFilters({});
+              }}
+            >
+              {h.keyword}
+            </button>
+          ))}
+        </div>
       )}
       {!ranking && (
         <div className="media-pagination">
@@ -576,17 +690,25 @@ export function Detail({
   api: API;
   close: () => void;
   search: (q: string) => void;
-  subscribe: (m: MediaSummary) => void;
+  subscribe: (m: MediaSummary, season: number) => void;
 }) {
   const [data, setData] = useState<MediaDetail>(media);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
+  const [season, setSeason] = useState("1");
   useEffect(() => {
     let active = true;
     api
       .detail(media)
       .then((v) => {
-        if (active) setData(v);
+        if (active) {
+          setData(v);
+          setSeason(
+            String(
+              v.seasons?.find((s) => s.seasonNumber > 0)?.seasonNumber || 1,
+            ),
+          );
+        }
       })
       .catch((e) => {
         if (active) setError(errorText(e));
@@ -599,33 +721,66 @@ export function Detail({
     };
   }, [api, media]);
   return (
-    <Overlay
-      title={data.title}
-      onClose={close}
-      footer={
-        <>
-          <Button variant="secondary" onPress={() => search(data.title)}>
-            <Search size={15} />
-            搜索资源
-          </Button>
-          {data.source === "tmdb" && data.mediaType === "tv" && (
-            <Button onPress={() => subscribe(data)}>
+    <section className="detail-page" aria-label={`${data.title}的作品详情`}>
+      <Button variant="ghost" onPress={close}>
+        <ChevronLeft size={16} />
+        返回列表
+      </Button>
+      <h1>{data.title}</h1>
+      <div className="management-actions">
+        <Button variant="secondary" onPress={() => search(data.title)}>
+          <Search size={15} />
+          搜索资源
+        </Button>
+        {(data.source === "tmdb" || data.externalIds?.tmdb) &&
+          data.mediaType === "tv" && (
+            <Button
+              onPress={() =>
+                subscribe(
+                  {
+                    ...data,
+                    source: "tmdb",
+                    provider: "tmdb",
+                    sourceId: data.externalIds?.tmdb || data.sourceId,
+                    providerId: data.externalIds?.tmdb || data.providerId,
+                  },
+                  Number(season),
+                )
+              }
+            >
               <Plus size={15} />
               订阅此剧
             </Button>
           )}
-        </>
-      }
-    >
+      </div>
       <div className="media-detail">
         <div className="media-detail-poster">
-          <Poster media={data} onOpen={() => {}} />
+          {image(data.posterPath) ? (
+            <MediaImage src={image(data.posterPath)!} alt={data.title} />
+          ) : (
+            <div className="poster-placeholder">{data.title}</div>
+          )}
         </div>
         <div>
           <p>{data.originalTitle}</p>
           <p>
             {data.year} · {data.genres.join(" / ")}
           </p>
+          <p className="media-note">
+            {data.status}{" "}
+            {data.runtimeMinutes ? `· ${data.runtimeMinutes} 分钟` : ""}{" "}
+            {data.originCountries?.join(" / ") || data.region || ""}
+          </p>
+          {data.tagline && <p>{data.tagline}</p>}
+          {data.externalIds?.imdb && /^tt\d+$/.test(data.externalIds.imdb) && (
+            <a
+              href={`https://www.imdb.com/title/${data.externalIds.imdb}/`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              查看 IMDb 条目
+            </a>
+          )}
           <div className="media-ratings">
             {data.ratings.map((r) => (
               <Chip key={r.source} variant="soft">
@@ -644,12 +799,17 @@ export function Detail({
             </p>
           ) : null}
           {data.seasons?.length ? (
-            <p className="media-note">
-              已收录：
-              {data.seasons
-                .map((s) => s.name || `第 ${s.seasonNumber} 季`)
-                .join("、")}
-            </p>
+            <SelectField
+              label="订阅季"
+              value={season}
+              options={data.seasons
+                .filter((s) => s.seasonNumber > 0)
+                .map((s) => [
+                  String(s.seasonNumber),
+                  `${s.name || `第 ${s.seasonNumber} 季`}${s.episodeCount ? ` · ${s.episodeCount} 集` : ""}`,
+                ])}
+              onChange={setSeason}
+            />
           ) : null}
           {error && (
             <p role="alert" className="media-error">
@@ -658,6 +818,29 @@ export function Detail({
           )}
         </div>
       </div>
-    </Overlay>
+      {!!data.credits?.length && (
+        <section className="detail-credits">
+          <h2>演职员</h2>
+          <div>
+            {data.credits.slice(0, 24).map((credit, index) => (
+              <article key={`${credit.name}-${index}`}>
+                {credit.profilePath ? (
+                  <MediaImage
+                    src={image(credit.profilePath)!}
+                    alt={credit.name}
+                  />
+                ) : (
+                  <div className="credit-placeholder">
+                    <Film size={24} />
+                  </div>
+                )}
+                <strong>{credit.name}</strong>
+                <small>{credit.role}</small>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+    </section>
   );
 }

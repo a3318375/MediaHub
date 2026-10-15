@@ -2,13 +2,65 @@ package anime
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 func validDraft() Draft {
 	return Draft{Title: "测试动画", BangumiID: "123", Source: "other", URL: "https://example.com/rss", Season: 1, Match: []string{}, Exclude: []string{}, Standby: []Feed{}}
+}
+
+func TestLargeMikanHTMLAndRSSBodyLimits(t *testing.T) {
+	for _, tc := range []struct {
+		raw, contentType string
+		limit            int64
+	}{
+		{"https://mikanani.me/Home/Search?searchstr=anime", "text/html; charset=utf-8", 8 << 20},
+		{"https://mikanime.tv/Home/Bangumi/123", "text/html", 8 << 20},
+		{"https://mikanani.me/RSS/Bangumi?bangumiId=123", "application/rss+xml", 2 << 20},
+		{"https://mikanani.me/Home/Search", "application/xml", 2 << 20},
+		{"https://mikanani.me.evil.test/Home/Search", "text/html", 2 << 20},
+		{"https://example.org/Home/Search", "text/html", 2 << 20},
+	} {
+		u, err := url.Parse(tc.raw)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := upstreamBodyLimit(u, tc.contentType); got != tc.limit {
+			t.Fatalf("%s: %d", tc.raw, got)
+		}
+	}
+	page := strings.Repeat("x", 4<<20)
+	if b, err := readUpstreamBody(strings.NewReader(page), 8<<20); err != nil || len(b) != len(page) {
+		t.Fatal("valid Mikan HTML rejected", err)
+	}
+	if _, err := readUpstreamBody(strings.NewReader(page), 2<<20); err == nil {
+		t.Fatal("RSS body limit relaxed")
+	}
+	if _, err := readUpstreamBody(strings.NewReader(strings.Repeat("x", (8<<20)+1)), 8<<20); err == nil {
+		t.Fatal("Mikan body is unbounded")
+	}
+}
+
+func TestCatalogCacheBoundsLargerHTML(t *testing.T) {
+	s := New()
+	s.Fetch = func(context.Context, string) ([]byte, error) { return []byte(strings.Repeat("x", 5<<20)), nil }
+	for i := 0; i < 10; i++ {
+		if _, err := s.cached(context.Background(), fmt.Sprintf("https://mikanani.me/Home/Bangumi/%d", i), time.Minute, false); err != nil {
+			t.Fatal(err)
+		}
+	}
+	bytes := 0
+	for _, entry := range s.cache {
+		bytes += len(entry.Body)
+	}
+	if bytes > 32<<20 {
+		t.Fatalf("cache exceeds byte budget: %d", bytes)
+	}
 }
 
 func TestRSSResourceKindsAndNamespaces(t *testing.T) {

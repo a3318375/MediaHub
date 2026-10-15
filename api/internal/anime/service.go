@@ -33,6 +33,29 @@ func publicIP(ip net.IP) bool {
 	return ip != nil && ip.IsGlobalUnicast() && !ip.IsPrivate() && !ip.IsLoopback() && !ip.IsLinkLocalUnicast() && !ip.IsUnspecified()
 }
 
+func upstreamBodyLimit(u *url.URL, contentType string) int64 {
+	// Mikan's HTML search pages include several MiB of inline assets. RSS and
+	// arbitrary sources retain the smaller limit; this exception is not inherited
+	// by redirects or other hosts.
+	if u.Scheme == "https" && (u.Host == "mikanani.me" || u.Host == "mikanime.tv") &&
+		(u.Path == "" || u.Path == "/" || strings.HasPrefix(u.Path, "/Home/")) &&
+		strings.HasPrefix(strings.ToLower(contentType), "text/html") {
+		return 8 << 20
+	}
+	return 2 << 20
+}
+
+func readUpstreamBody(body io.Reader, limit int64) ([]byte, error) {
+	b, err := io.ReadAll(io.LimitReader(body, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(b)) > limit {
+		return nil, fmt.Errorf("上游响应超过 %d MiB", limit>>20)
+	}
+	return b, nil
+}
+
 // Validate resolved addresses and dial the validated IP to prevent DNS rebinding.
 func fetchPublic(ctx context.Context, raw string) ([]byte, error) {
 	u, e := FeedURL(raw)
@@ -99,14 +122,7 @@ func fetchPublic(ctx context.Context, raw string) ([]byte, error) {
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("上游返回 HTTP %d", res.StatusCode)
 	}
-	b, e := io.ReadAll(io.LimitReader(res.Body, 2<<20+1))
-	if e != nil {
-		return nil, e
-	}
-	if len(b) > 2<<20 {
-		return nil, fmt.Errorf("上游响应超过 2 MiB")
-	}
-	return b, nil
+	return readUpstreamBody(res.Body, upstreamBodyLimit(u, res.Header.Get("Content-Type")))
 }
 func (s *Service) cached(ctx context.Context, raw string, ttl time.Duration, refresh bool) ([]byte, error) {
 	s.mu.Lock()
@@ -120,7 +136,11 @@ func (s *Service) cached(ctx context.Context, raw string, ttl time.Duration, ref
 		return nil, e
 	}
 	s.mu.Lock()
-	if len(s.cache) >= 128 {
+	cacheBytes := len(b)
+	for _, entry := range s.cache {
+		cacheBytes += len(entry.Body)
+	}
+	if len(s.cache) >= 128 || cacheBytes > 32<<20 {
 		s.cache = map[string]cacheEntry{}
 	}
 	s.cache[raw] = cacheEntry{b, time.Now().Add(ttl)}

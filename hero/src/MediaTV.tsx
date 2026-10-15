@@ -8,6 +8,7 @@ import {
   Trash2,
   Tv,
 } from "lucide-react";
+import { is115ShareURL } from "./lib/download-api";
 import { Overlay } from "./App";
 import { image, safeURL, type TV, type TVDraft } from "./media-service";
 import { errorText, dateCN, time, FilterTabs, Empty } from "./MediaUI";
@@ -179,11 +180,13 @@ export function TVList({
   edit,
   action,
   add,
+  download,
 }: {
   items: TV[];
   edit: (s: TV) => void;
   action: (s: TV, a: "toggle" | "refresh" | "remove") => Promise<void>;
   add: () => void;
+  download: (tv: TV, resource: TV["resources"][number]) => void;
 }) {
   const [filter, setFilter] = useState("all");
   const [remove, setRemove] = useState<TV | null>(null);
@@ -255,15 +258,28 @@ export function TVList({
                 <details>
                   <summary>查看已找到资源</summary>
                   {s.resources.map((r, j) => (
-                    <a
-                      className="subscription-resource"
-                      key={j}
-                      href={safeURL(r.url)}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      E{r.episode} · {r.title}
-                    </a>
+                    <div className="management-row" key={j}>
+                      <a
+                        className="subscription-resource"
+                        href={safeURL(r.url)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        E{r.episode}
+                        {r.collectionEnd ? `–${r.collectionEnd}` : ""} ·{" "}
+                        {r.title}
+                      </a>
+                      {(r.url.startsWith("magnet:") ||
+                        is115ShareURL(r.url)) && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onPress={() => download(s, r)}
+                        >
+                          下载 / 转存
+                        </Button>
+                      )}
+                    </div>
                   ))}
                 </details>
               )}
@@ -344,10 +360,18 @@ export function TVList({
 export function Calendar({
   items,
   edit,
+  download,
 }: {
   items: TV[];
   edit: (s: TV) => void;
+  download: (tv: TV, resource: TV["resources"][number]) => void;
 }) {
+  const [selectedEvent, setSelectedEvent] = useState<{
+    subscription: TV;
+    number: number;
+    name: string;
+    airDate: string;
+  } | null>(null);
   const [month, setMonth] = useState(
     () => new Date(`${dateCN(new Date()).slice(0, 7)}-01T12:00:00+08:00`),
   );
@@ -422,18 +446,30 @@ export function Calendar({
                       key={`${e.subscription.id}-${e.number}`}
                       className={
                         e.subscription.resources.some(
-                          (r) => r.episode === e.number,
+                          (r) =>
+                            r.episode === e.number ||
+                            !!(
+                              r.collectionEnd &&
+                              r.episode <= e.number &&
+                              r.collectionEnd >= e.number
+                            ),
                         )
                           ? "found"
                           : ""
                       }
-                      onClick={() => edit(e.subscription)}
+                      onClick={() => setSelectedEvent(e)}
                     >
                       <strong>{e.subscription.title}</strong>
                       <small>
                         E{String(e.number).padStart(2, "0")} ·{" "}
                         {e.subscription.resources.some(
-                          (r) => r.episode === e.number,
+                          (r) =>
+                            r.episode === e.number ||
+                            !!(
+                              r.collectionEnd &&
+                              r.episode <= e.number &&
+                              r.collectionEnd >= e.number
+                            ),
                         )
                           ? "资源已找到"
                           : e.subscription.enabled
@@ -447,6 +483,59 @@ export function Calendar({
           })}
         </div>
       </div>
+      {selectedEvent && (
+        <Overlay
+          title={`${selectedEvent.subscription.title} · 第 ${selectedEvent.number} 集`}
+          onClose={() => setSelectedEvent(null)}
+        >
+          <div className="management-stack">
+            <p>
+              {selectedEvent.name} · {selectedEvent.airDate}
+            </p>
+            <Button
+              variant="secondary"
+              onPress={() => {
+                edit(selectedEvent.subscription);
+                setSelectedEvent(null);
+              }}
+            >
+              编辑订阅规则
+            </Button>
+            {selectedEvent.subscription.resources
+              .filter(
+                (r) =>
+                  r.episode === selectedEvent.number ||
+                  (r.collectionEnd &&
+                    r.episode <= selectedEvent.number &&
+                    r.collectionEnd >= selectedEvent.number),
+              )
+              .map((r, i) => (
+                <div className="management-stack" key={i}>
+                  <a href={safeURL(r.url)} target="_blank" rel="noreferrer">
+                    {r.title}
+                  </a>
+                  {(r.url.startsWith("magnet:") || is115ShareURL(r.url)) && (
+                    <Button
+                      onPress={() => {
+                        download(selectedEvent.subscription, r);
+                        setSelectedEvent(null);
+                      }}
+                    >
+                      下载 / 转存
+                    </Button>
+                  )}
+                </div>
+              ))}
+            {!selectedEvent.subscription.resources.some(
+              (r) =>
+                r.episode === selectedEvent.number ||
+                (r.collectionEnd &&
+                  r.episode <= selectedEvent.number &&
+                  r.collectionEnd >= selectedEvent.number),
+            ) && <Empty>尚未找到本集资源，可在订阅页检查更新。</Empty>}
+          </div>
+        </Overlay>
+      )}
       <p className="media-note">
         播出日期按北京时间展示。新建订阅的播出资料由服务端读取；演示模式不会生成真实播出计划。
       </p>

@@ -26,6 +26,9 @@ export type TV = TVDraft & {
     cloud: string;
     channel: string;
     episode: number;
+    password?: string;
+    size?: number;
+    collectionEnd?: number;
   }[];
   lastCheckedAt: string;
   nextCheckAt: string;
@@ -125,9 +128,10 @@ export async function request<T>(
   session?: Session | null,
   method = "GET",
   body?: unknown,
+  timeoutMs = 30_000,
 ): Promise<T> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 30_000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(path, {
       method,
@@ -168,12 +172,40 @@ export function image(path?: string | null) {
 }
 export function safeURL(value: string) {
   try {
-    return ["https:", "http:", "magnet:"].includes(new URL(value).protocol)
+    return ["https:", "http:", "magnet:", "ed2k:"].includes(
+      new URL(value).protocol,
+    )
       ? value
       : undefined;
   } catch {
     return undefined;
   }
+}
+export function discoveryQuery(query: Record<string, string>) {
+  const result: Record<string, string> = {
+    ...query,
+    pageSize: query.source === "tmdb" ? "20" : query.pageSize || "20",
+  };
+  if (result.query?.trim() && query.source !== "anilist") {
+    for (const key of ["genre", "region", "sort", "month", "season", "status"])
+      delete result[key];
+    if (query.source === "bangumi") delete result.year;
+  }
+  return result;
+}
+export function normalizeResources(
+  data: Partial<Resources> | null | undefined,
+): Resources {
+  if (!data || typeof data !== "object")
+    throw new Error("资源搜索返回了无效响应");
+  return {
+    total: typeof data.total === "number" ? data.total : 0,
+    items: Array.isArray(data.items) ? data.items : [],
+    linksByCloud:
+      data.linksByCloud && typeof data.linksByCloud === "object"
+        ? data.linksByCloud
+        : {},
+  };
 }
 export const demoMedia: MediaSummary[] = [
   ["沙丘：第二部", "DUNE · PART TWO", "movie", "693134", "2024", "科幻"],
@@ -251,7 +283,7 @@ export function service(session: Session) {
     discover: (query: Record<string, string>, force = false) =>
       live
         ? get<MediaPage<MediaSummary>>(
-            `/api/media/discover?${new URLSearchParams(query)}`,
+            `/api/media/discover?${new URLSearchParams(discoveryQuery(query))}`,
             force,
           )
         : Promise.resolve({
@@ -333,8 +365,14 @@ export function service(session: Session) {
         `/api/v1/subscriptions/tv/${encodeURIComponent(id)}/refresh`,
         session,
         "POST",
+        undefined,
+        95_000,
       ),
-    search: async (query: string, force = false): Promise<Resources> => {
+    search: async (
+      query: string,
+      force = false,
+      collect = false,
+    ): Promise<Resources> => {
       if (!live)
         return {
           total: 2,
@@ -367,7 +405,7 @@ export function service(session: Session) {
       }>("/api/v1/resources/meta");
       const selection = meta.data.selection;
       if (!selection.channels.length && !selection.plugins.length)
-        throw new Error("请先在原前端全局设置中选择 TG 频道或搜索插件");
+        throw new Error("请先在设置 → 资源搜索中选择 TG 频道或搜索插件");
       return cached(
         `resources:${query}`,
         () =>
@@ -387,8 +425,8 @@ export function service(session: Session) {
               ...selection,
               refresh: force,
             },
-          ).then((r) => r.data),
-        force,
+          ).then((r) => normalizeResources(r.data)),
+        force || collect,
       );
     },
     downloads: () =>

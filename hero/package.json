@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4174 --strictPort",
     "typecheck": "tsc -b",
-    "test": "node --test tests/*.test.mjs"
+    "test": "node --test tests/*.test.mjs",
+    "test:backend": "node scripts/check-backend.mjs"
   },
   "dependencies": {
     "@heroui/react": "^3.0.0",

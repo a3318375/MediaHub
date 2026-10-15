@@ -1,12 +1,18 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { Button, Card, Chip, Input } from "@heroui/react";
 import {
   CalendarDays,
   Check,
   ChevronRight,
-  Download as DownloadIcon,
   Film,
-  House,
   LogOut,
   Menu,
   Moon,
@@ -18,7 +24,14 @@ import {
   Trophy,
   Tv,
   X,
+  Clapperboard,
+  ScrollText,
+  Library,
+  RefreshCw,
 } from "lucide-react";
+import { MediaUserMenu } from "./MediaUserMenu";
+import { HeaderSearch } from "./MediaHeaderSearch";
+import { navigationItems, resolvePage } from "./parity";
 import { Login } from "./App";
 import {
   ApiError,
@@ -35,46 +48,100 @@ import {
   type TVDraft,
 } from "./media-service";
 import type { MediaSummary } from "./media-contract";
-import { errorText, dateCN, Empty, FilterTabs } from "./MediaUI";
+import { errorText, dateCN, Empty } from "./MediaUI";
 import { HomeRecommendations, Discovery, Detail } from "./MediaCatalog";
 import { TVEditor, TVList, Calendar } from "./MediaTV";
-import { ResourceSearch, DownloadList } from "./MediaResources";
-const navigation = [
-  ["home", "总览", House],
-  ["discover", "影视探索", Telescope],
-  ["rankings", "榜单推荐", Trophy],
-  ["search", "资源搜索", Search],
-  ["subscriptions", "电视剧订阅", Tv],
-  ["calendar", "追剧日历", CalendarDays],
-  ["downloads", "下载记录", DownloadIcon],
-  ["settings", "设置", Settings],
-] as const;
-type Page = (typeof navigation)[number][0];
+import { ResourceSearch } from "./MediaResources";
+import { Downloads, DownloadDialog } from "./MediaDownloads";
+const ServerSettings = lazy(() =>
+  import("./MediaSettings").then((m) => ({ default: m.ServerSettings })),
+);
+const AnimeSubscriptions = lazy(() =>
+  import("./MediaAnime").then((m) => ({ default: m.AnimeSubscriptions })),
+);
+const Organize = lazy(() =>
+  import("./MediaTools").then((m) => ({ default: m.Organize })),
+);
+const Logs = lazy(() =>
+  import("./MediaTools").then((m) => ({ default: m.Logs })),
+);
+const Emby = lazy(() =>
+  import("./MediaEmby").then((m) => ({ default: m.Emby })),
+);
+const navIcons = {
+  emby: Library,
+  search: Search,
+  discover: Telescope,
+  rankings: Trophy,
+  anime: Clapperboard,
+  calendar: CalendarDays,
+  logs: ScrollText,
+  settings: Settings,
+};
+const navigation = navigationItems.map(
+  ([id, label, section]) => [id, label, navIcons[id], section] as const,
+);
+type Page =
+  | (typeof navigationItems)[number][0]
+  | "home"
+  | "subscriptions"
+  | "downloads"
+  | "organize";
 function LiveLogin({
   onLogin,
   onDemo,
 }: {
-  onLogin: (s: Session) => void;
+  onLogin: (s: Session, remember?: boolean) => void;
   onDemo: () => void;
 }) {
   const [account, setAccount] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [setup, setSetup] = useState<boolean | null>(null);
+  const [confirm, setConfirm] = useState("");
+  const [remember, setRemember] = useState(false);
+  const [revision, setRevision] = useState(0);
+  useEffect(() => {
+    let active = true;
+    setSetup(null);
+    setError("");
+    request<{ setupRequired: boolean }>("/api/auth/setup/status")
+      .then((r) => {
+        if (active) setSetup(r.setupRequired);
+      })
+      .catch((e) => {
+        if (active) setError(errorText(e));
+      });
+    return () => {
+      active = false;
+    };
+  }, [revision]);
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (setup === null) return;
+    if (setup && password !== confirm) {
+      setError("两次输入的密码不一致");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
       const r = await request<{
         accessToken: string;
         user: { name: string; account: string };
-      }>("/api/auth/login", null, "POST", { account, password });
-      onLogin({
-        mode: "live",
-        name: r.user.name || r.user.account,
-        token: r.accessToken,
+      }>(setup ? "/api/auth/setup" : "/api/auth/login", null, "POST", {
+        account,
+        password,
       });
+      onLogin(
+        {
+          mode: "live",
+          name: r.user.name || r.user.account,
+          token: r.accessToken,
+        },
+        remember,
+      );
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -85,8 +152,12 @@ function LiveLogin({
     <div className="service-login">
       <Card className="service-login-card">
         <img src="/favicon.svg" alt="" width="38" />
-        <h1>连接 MediaHub</h1>
-        <p>使用现有 Go 服务中的管理员账号登录。</p>
+        <h1>{setup ? "创建管理员账号" : "连接 MediaHub"}</h1>
+        <p>
+          {setup
+            ? "首次使用，创建你的管理员账号。"
+            : "使用 MediaHub 管理员账号登录。"}
+        </p>
         <form onSubmit={submit}>
           <label>
             账号
@@ -109,19 +180,50 @@ function LiveLogin({
               required
             />
           </label>
+          {setup && (
+            <label>
+              确认密码
+              <Input
+                aria-label="确认密码"
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                required
+              />
+            </label>
+          )}
+          <label className="management-toggle">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+            />
+            记住登录状态
+          </label>
+          {setup === null && !error && (
+            <p role="status">正在检查服务初始化状态…</p>
+          )}
+          {setup === null && error && (
+            <Button
+              variant="secondary"
+              onPress={() => setRevision((n) => n + 1)}
+            >
+              重新连接
+            </Button>
+          )}
           {error && (
             <p role="alert" className="media-error">
               {error}
             </p>
           )}
-          <Button type="submit" isDisabled={busy}>
-            {busy ? "正在登录…" : "连接服务"}
+          <Button type="submit" isDisabled={busy || setup === null}>
+            {busy ? "正在处理…" : setup ? "创建账号并登录" : "连接服务"}
           </Button>
           <Button variant="secondary" onPress={onDemo}>
             返回独立演示
           </Button>
         </form>
-        <small>首次部署请先在原前端创建管理员账号。</small>
+        <small>账号与数据由已连接的 MediaHub 服务管理。</small>
       </Card>
     </div>
   );
@@ -129,21 +231,41 @@ function LiveLogin({
 
 export default function MediaApp() {
   const [session, setSession] = useState<Session | null>(readSession);
-  const [liveLogin, setLiveLogin] = useState(false);
+  const [liveLogin, setLiveLogin] = useState(true);
   const [page, setPage] = useState<Page>(() => {
     const hash = window.location.hash.slice(2);
-    return navigation.some((n) => n[0] === hash) ? (hash as Page) : "home";
+    return resolvePage(hash) as Page;
   });
+  const [catalogVisited, setCatalogVisited] = useState<string[]>(
+    page === "discover" || page === "rankings" ? [page] : [],
+  );
+  useEffect(() => {
+    if (page === "discover" || page === "rankings")
+      setCatalogVisited((current) =>
+        current.includes(page) ? current : [...current, page],
+      );
+  }, [page]);
+  const [searchVisited, setSearchVisited] = useState(page === "search");
+  useEffect(() => {
+    if (page === "search") setSearchVisited(true);
+  }, [page]);
   const [mobile, setMobile] = useState(false);
   const [dark, setDark] = useState(() => read("mediahub.hero.dark", false));
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
   const [subscriptions, setSubscriptions] = useState<TV[]>([]);
   const [tvLoading, setTVLoading] = useState(false);
+  const tvVersion = useRef(0);
   const [downloads, setDownloads] = useState<Download[]>([]);
   const [detail, setDetail] = useState<MediaSummary | null>(null);
   const [edit, setEdit] = useState<TV | TVDraft | null>(null);
+  const [tvDownload, setTVDownload] = useState<{
+    tv: TV;
+    resource: TV["resources"][number];
+  } | null>(null);
+  const [searchBack, setSearchBack] = useState(false);
   const [resourceQuery, setResourceQuery] = useState("");
+  const [resourceMedia, setResourceMedia] = useState<MediaSummary | null>(null);
   const api = useMemo(() => (session ? service(session) : null), [session]);
   const notify = (message: string) => setToast(message);
   useEffect(() => {
@@ -158,7 +280,8 @@ export default function MediaApp() {
   useEffect(() => {
     const change = () => {
       const hash = window.location.hash.slice(2);
-      if (navigation.some((n) => n[0] === hash)) setPage(hash as Page);
+      setPage(resolvePage(hash) as Page);
+      setDetail(null);
     };
     window.addEventListener("hashchange", change);
     return () => window.removeEventListener("hashchange", change);
@@ -168,11 +291,20 @@ export default function MediaApp() {
     let active = true;
     setTVLoading(true);
     setError("");
-    Promise.all([api.tv(), api.downloads()])
+    Promise.allSettled([api.tv(), api.downloads()])
       .then(([tv, tasks]) => {
         if (active) {
-          setSubscriptions(tv);
-          setDownloads(tasks);
+          if (tv.status === "fulfilled") setSubscriptions(tv.value);
+          if (tasks.status === "fulfilled") setDownloads(tasks.value);
+          const failures = [tv, tasks].filter((r) => r.status === "rejected");
+          if (failures.length)
+            setError(failures.map((r) => errorText(r.reason)).join("；"));
+          if (
+            failures.some(
+              (r) => r.reason instanceof ApiError && r.reason.status === 401,
+            )
+          )
+            logout();
         }
       })
       .catch((e) => {
@@ -188,6 +320,41 @@ export default function MediaApp() {
       active = false;
     };
   }, [api]);
+  useEffect(() => {
+    if (session?.mode !== "live") return;
+    let active = true;
+    request("/api/auth/me", session).catch((e) => {
+      if (active && e instanceof ApiError && e.status === 401) logout();
+    });
+    return () => {
+      active = false;
+    };
+  }, [session]);
+  useEffect(() => {
+    if (
+      !api ||
+      session?.mode !== "live" ||
+      edit ||
+      !["subscriptions", "calendar"].includes(page)
+    )
+      return;
+    let active = true;
+    const timer = setInterval(() => {
+      const version = tvVersion.current;
+      api
+        .tv()
+        .then((items) => {
+          if (active && version === tvVersion.current) setSubscriptions(items);
+        })
+        .catch((e) => {
+          if (active) setError(errorText(e));
+        });
+    }, 30000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [api, session, page, edit]);
   function login(s: Session, remember = false) {
     clearCache();
     localStorage.removeItem(SESSION);
@@ -201,8 +368,11 @@ export default function MediaApp() {
     window.scrollTo(0, 0);
   }
   function logout() {
+    if (session?.mode === "live")
+      void request("/api/auth/logout", session, "POST").catch(() => {});
     localStorage.removeItem(SESSION);
     sessionStorage.removeItem(SESSION);
+    sessionStorage.removeItem("mediahub.hero.resource-result");
     clearCache();
     setSession(null);
     setDetail(null);
@@ -212,13 +382,17 @@ export default function MediaApp() {
     setMobile(false);
   }
   function go(p: Page) {
+    p = resolvePage(p) as Page;
     window.location.hash = `/${p}`;
     setPage(p);
     setMobile(false);
     setError("");
+    setDetail(null);
     window.scrollTo(0, 0);
   }
-  function searchFor(title: string) {
+  function searchFor(title: string, media = detail) {
+    setSearchBack(page === "discover");
+    setResourceMedia(media);
     setDetail(null);
     setResourceQuery(title);
     go("search");
@@ -229,6 +403,7 @@ export default function MediaApp() {
   }
   async function saveTV(draft: TVDraft) {
     if (!api || !session) return;
+    tvVersion.current++;
     const id = edit && "id" in edit ? edit.id : undefined;
     const result =
       session.mode === "live"
@@ -258,6 +433,7 @@ export default function MediaApp() {
   }
   async function tvAction(tv: TV, action: "toggle" | "refresh" | "remove") {
     if (!api || !session) return;
+    tvVersion.current++;
     try {
       if (action === "remove") {
         if (session.mode === "live") await api.removeTV(tv.id);
@@ -329,18 +505,22 @@ export default function MediaApp() {
             MediaHub<small>你的私人影视空间</small>
           </span>
         </div>
-        <div className="media-nav-label">工作空间</div>
         <nav>
-          {navigation.map(([id, label, Icon]) => (
-            <button
-              key={id}
-              className={page === id ? "active" : ""}
-              onClick={() => go(id)}
-            >
-              <Icon size={18} />
-              {label}
-              {id === "subscriptions" && <span>{subscriptions.length}</span>}
-            </button>
+          {navigation.map(([id, label, Icon, section], index) => (
+            <div key={id}>
+              {(index === 0 || navigation[index - 1][3] !== section) && (
+                <div className="media-nav-label">{section}</div>
+              )}
+              <button
+                key={id}
+                aria-current={page === id ? "page" : undefined}
+                className={page === id ? "active" : ""}
+                onClick={() => go(id)}
+              >
+                <Icon size={18} />
+                {label}
+              </button>
+            </div>
           ))}
         </nav>
         <div className="media-sidebar-bottom">
@@ -350,7 +530,7 @@ export default function MediaApp() {
             <small>
               {session.mode === "demo"
                 ? "数据仅保存在当前浏览器"
-                : "沿用现有 Go 后端"}
+                : "已连接 MediaHub 服务"}
             </small>
           </div>
           <button onClick={logout}>
@@ -376,6 +556,7 @@ export default function MediaApp() {
             <strong>{title}</strong>
           </div>
           <div>
+            <HeaderSearch navigate={(p) => go(p as Page)} />
             <Chip size="sm" variant="soft">
               {session.mode === "demo" ? "DEMO" : "LIVE"}
             </Chip>
@@ -387,271 +568,329 @@ export default function MediaApp() {
             >
               {dark ? <Sun size={18} /> : <Moon size={18} />}
             </Button>
-            <span className="media-user">
-              {session.name.slice(0, 1).toUpperCase()}
-            </span>
+            <MediaUserMenu
+              session={session}
+              settings={() => go("settings")}
+              logout={logout}
+            />
           </div>
         </header>
         <main className="media-main">
-          <div className="media-heading">
-            <div>
-              <span className="media-eyebrow">
-                YOUR MEDIA, BEAUTIFULLY ORGANIZED
-              </span>
-              <h1>{title}</h1>
-              <p>
-                {
-                  {
-                    home: "发现下一部心头好，让每一次更新都有迹可循。",
-                    discover: "从不同来源出发，找到值得花时间的作品。",
-                    rankings: "跟随网站榜单与平台片库，发现正在被关注的故事。",
-                    search: "搜索网盘分享与磁力资源，把发现连接到收藏。",
-                    subscriptions:
-                      "按季追踪更新，使用你选择的 TG 或 PanSou 搜索规则。",
-                    calendar: "以北京时间查看播出计划与资源进展。",
-                    downloads: "查看已提交到 115 的离线下载与转存任务。",
-                    settings: "管理当前前端的外观、运行方式与本地数据。",
-                  }[page]
-                }
-              </p>
-            </div>
-            {page === "subscriptions" && (
-              <Button
-                onPress={() =>
-                  setEdit({
-                    tmdbId: "",
-                    title: "",
-                    season: 1,
-                    source: "tg",
-                    enabled: true,
-                    channels: [],
-                    match: "",
-                    exclude: "",
-                  })
-                }
-              >
-                <Plus size={16} />
-                添加订阅
-              </Button>
-            )}
-          </div>
-          {error && (
-            <div role="alert" className="media-error">
-              {error}
-              <Button variant="ghost" size="sm" onPress={() => setError("")}>
-                关闭
-              </Button>
-            </div>
-          )}
-          {page === "home" && (
-            <>
-              <div className="media-stat-grid">
-                {[
-                  [
-                    "正在追剧",
-                    subscriptions.filter((s) => s.enabled).length,
-                    "部订阅持续跟踪",
-                  ],
-                  [
-                    "今日播出",
-                    subscriptions
-                      .flatMap((s) => s.episodes)
-                      .filter((e) => e.airDate === dateCN(new Date())).length,
-                    "集故事即将更新",
-                  ],
-                  [
-                    "已找到资源",
-                    subscriptions.reduce((n, s) => n + s.resources.length, 0),
-                    "条资源等待查看",
-                  ],
-                  ["下载任务", downloads.length, "项下载与分享转存"],
-                ].map(([label, value, note]) => (
-                  <Card className="media-stat" key={label}>
-                    <span>{label}</span>
-                    <strong>{tvLoading ? "—" : value}</strong>
-                    <small>{note}</small>
-                  </Card>
-                ))}
-              </div>
-              <div className="media-home-grid">
-                <Card className="media-welcome">
-                  <span>MAKE TIME FOR GOOD STORIES</span>
-                  <h2>
-                    好故事，
-                    <br />
-                    值得被好好收藏。
-                  </h2>
-                  <p>探索灵感，订阅期待，把你的影视世界收在一处。</p>
-                  <Button onPress={() => go("discover")}>
-                    开始探索
-                    <ChevronRight size={16} />
-                  </Button>
-                  <div className="welcome-orbit">
-                    <Film size={68} />
-                  </div>
-                </Card>
-                <Card className="media-updates">
-                  <div className="media-section-heading">
-                    <h2>正在追的剧</h2>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onPress={() => go("subscriptions")}
-                    >
-                      查看全部
-                      <ChevronRight size={14} />
-                    </Button>
-                  </div>
-                  {subscriptions.length ? (
-                    subscriptions.slice(0, 3).map((s, i) => (
-                      <button
-                        className="update-row"
-                        key={s.id}
-                        onClick={() => setEdit(s)}
-                      >
-                        <span className={`update-icon palette-${i}`}>
-                          <Tv size={21} />
-                        </span>
-                        <span>
-                          <strong>{s.title}</strong>
-                          <small>
-                            第 {s.season} 季 ·{" "}
-                            {s.source === "tg" ? "TG 频道" : "PanSou"}
-                          </small>
-                        </span>
-                        <Chip
-                          size="sm"
-                          variant="soft"
-                          color={s.enabled ? "success" : "default"}
-                        >
-                          {s.enabled ? "追踪中" : "已暂停"}
-                        </Chip>
-                      </button>
-                    ))
-                  ) : (
-                    <Empty>还没有订阅，从影视探索选一部剧吧。</Empty>
-                  )}
-                </Card>
-              </div>
-              <div className="media-section-heading">
-                <h2>今日灵感</h2>
-                <Button variant="ghost" onPress={() => go("rankings")}>
-                  更多榜单
-                  <ChevronRight size={15} />
-                </Button>
-              </div>
-              <HomeRecommendations api={api!} open={setDetail} />
-            </>
-          )}
-          {(page === "discover" || page === "rankings") && (
-            <Discovery
-              key={page}
-              ranking={page === "rankings"}
+          {detail && (
+            <Detail
+              media={detail}
               api={api!}
-              demo={session.mode === "demo"}
-              open={setDetail}
-            />
-          )}
-          {page === "search" && (
-            <ResourceSearch
-              key={resourceQuery}
-              api={api!}
-              session={session}
-              initialQuery={resourceQuery}
-              notify={notify}
-              onDownloaded={(task) => {
-                const items = [
-                  task,
-                  ...downloads.filter((t) => t.id !== task.id),
-                ];
-                setDownloads(items);
-                if (session.mode === "demo")
-                  save("mediahub.hero.downloads", items);
+              close={() => setDetail(null)}
+              search={searchFor}
+              subscribe={(m, season) => {
+                setDetail(null);
+                setEdit({
+                  tmdbId: m.sourceId,
+                  title: m.title,
+                  season,
+                  source: "tg",
+                  enabled: true,
+                  channels: [],
+                  match: "",
+                  exclude: "",
+                });
               }}
             />
           )}
-          {page === "subscriptions" &&
-            (tvLoading ? (
-              <Empty>正在读取订阅…</Empty>
-            ) : (
-              <TVList
-                items={subscriptions}
-                edit={setEdit}
-                action={tvAction}
-                add={() =>
-                  setEdit({
-                    tmdbId: "",
-                    title: "",
-                    season: 1,
-                    source: "tg",
-                    enabled: true,
-                    channels: [],
-                    match: "",
-                    exclude: "",
-                  })
-                }
+
+          <div hidden={!!detail}>
+            <div className="media-heading">
+              <div>
+                <h1>{title}</h1>
+                <p>
+                  {
+                    {
+                      home: "发现下一部心头好，让每一次更新都有迹可循。",
+                      emby: "查看媒体库、最新入库与继续观看。",
+                      anime: "订阅番剧 RSS，管理字幕组、匹配规则与自动下载。",
+                      organize: "预览文件命名和目标目录，确认后整理到媒体库。",
+                      logs: "查询服务运行记录，定位同步与下载问题。",
+                      discover: "从不同来源出发，找到值得花时间的作品。",
+                      rankings:
+                        "跟随网站榜单与平台片库，发现正在被关注的故事。",
+                      search: "搜索网盘分享与磁力资源，把发现连接到收藏。",
+                      subscriptions:
+                        "按季追踪更新，使用你选择的 TG 或 PanSou 搜索规则。",
+                      calendar: "以北京时间查看播出计划与资源进展。",
+                      downloads: "查看已提交到 115 的离线下载与转存任务。",
+                      settings: "管理基础配置、媒体整理、资源搜索和账号安全。",
+                    }[page]
+                  }
+                </p>
+              </div>
+              {(page === "subscriptions" || page === "calendar") && (
+                <Button
+                  onPress={() =>
+                    setEdit({
+                      tmdbId: "",
+                      title: "",
+                      season: 1,
+                      source: "tg",
+                      enabled: true,
+                      channels: [],
+                      match: "",
+                      exclude: "",
+                    })
+                  }
+                >
+                  <Plus size={16} />
+                  添加订阅
+                </Button>
+              )}
+              {(page === "subscriptions" || page === "calendar") && (
+                <Button
+                  variant="secondary"
+                  isDisabled={tvLoading}
+                  onPress={async () => {
+                    if (!api) return;
+                    setTVLoading(true);
+                    const version = ++tvVersion.current;
+                    try {
+                      const result = await api.tv();
+                      if (version === tvVersion.current)
+                        setSubscriptions(result);
+                    } catch (e) {
+                      setError(errorText(e));
+                    } finally {
+                      setTVLoading(false);
+                    }
+                  }}
+                >
+                  <RefreshCw size={16} />
+                  刷新订阅状态
+                </Button>
+              )}
+            </div>
+            {error && (
+              <div role="alert" className="media-error">
+                {error}
+                <Button variant="ghost" size="sm" onPress={() => setError("")}>
+                  关闭
+                </Button>
+              </div>
+            )}
+            <Suspense fallback={<Empty>正在加载功能页面…</Empty>}>
+              {page === "emby" && <Emby session={session} open={setDetail} />}
+              {page === "anime" && (
+                <AnimeSubscriptions
+                  session={session}
+                  search={(m) => searchFor(m.title, m)}
+                />
+              )}
+              {page === "organize" && <Organize session={session} />}
+              {page === "logs" && <Logs session={session} />}
+            </Suspense>
+            {page === "home" && (
+              <>
+                <div className="media-stat-grid">
+                  {[
+                    [
+                      "正在追剧",
+                      subscriptions.filter((s) => s.enabled).length,
+                      "部订阅持续跟踪",
+                    ],
+                    [
+                      "今日播出",
+                      subscriptions
+                        .flatMap((s) => s.episodes)
+                        .filter((e) => e.airDate === dateCN(new Date())).length,
+                      "集故事即将更新",
+                    ],
+                    [
+                      "已找到资源",
+                      subscriptions.reduce((n, s) => n + s.resources.length, 0),
+                      "条资源等待查看",
+                    ],
+                    ["下载任务", downloads.length, "项下载与分享转存"],
+                  ].map(([label, value, note]) => (
+                    <Card className="media-stat" key={label}>
+                      <span>{label}</span>
+                      <strong>{tvLoading ? "—" : value}</strong>
+                      <small>{note}</small>
+                    </Card>
+                  ))}
+                </div>
+                <div className="media-home-grid">
+                  <Card className="media-welcome">
+                    <span>MAKE TIME FOR GOOD STORIES</span>
+                    <h2>
+                      好故事，
+                      <br />
+                      值得被好好收藏。
+                    </h2>
+                    <p>探索灵感，订阅期待，把你的影视世界收在一处。</p>
+                    <Button onPress={() => go("discover")}>
+                      开始探索
+                      <ChevronRight size={16} />
+                    </Button>
+                    <div className="welcome-orbit">
+                      <Film size={68} />
+                    </div>
+                  </Card>
+                  <Card className="media-updates">
+                    <div className="media-section-heading">
+                      <h2>正在追的剧</h2>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onPress={() => go("subscriptions")}
+                      >
+                        查看全部
+                        <ChevronRight size={14} />
+                      </Button>
+                    </div>
+                    {subscriptions.length ? (
+                      subscriptions.slice(0, 3).map((s, i) => (
+                        <button
+                          className="update-row"
+                          key={s.id}
+                          onClick={() => setEdit(s)}
+                        >
+                          <span className={`update-icon palette-${i}`}>
+                            <Tv size={21} />
+                          </span>
+                          <span>
+                            <strong>{s.title}</strong>
+                            <small>
+                              第 {s.season} 季 ·{" "}
+                              {s.source === "tg" ? "TG 频道" : "PanSou"}
+                            </small>
+                          </span>
+                          <Chip
+                            size="sm"
+                            variant="soft"
+                            color={s.enabled ? "success" : "default"}
+                          >
+                            {s.enabled ? "追踪中" : "已暂停"}
+                          </Chip>
+                        </button>
+                      ))
+                    ) : (
+                      <Empty>还没有订阅，从影视探索选一部剧吧。</Empty>
+                    )}
+                  </Card>
+                </div>
+                <div className="media-section-heading">
+                  <h2>今日灵感</h2>
+                  <Button variant="ghost" onPress={() => go("rankings")}>
+                    更多榜单
+                    <ChevronRight size={15} />
+                  </Button>
+                </div>
+                <HomeRecommendations api={api!} open={setDetail} />
+              </>
+            )}
+            {(["discover", "rankings"] as const)
+              .filter((p) => p === page || catalogVisited.includes(p))
+              .map((catalogPage) => (
+                <div key={catalogPage} hidden={page !== catalogPage}>
+                  <Discovery
+                    ranking={catalogPage === "rankings"}
+                    api={api!}
+                    demo={session.mode === "demo"}
+                    open={setDetail}
+                    search={(m) => searchFor(m.title, m)}
+                    subscribe={(m) =>
+                      setEdit({
+                        tmdbId: m.sourceId,
+                        title: m.title,
+                        season: 1,
+                        source: "tg",
+                        enabled: true,
+                        channels: [],
+                        match: "",
+                        exclude: "",
+                      })
+                    }
+                  />
+                </div>
+              ))}
+            {(page === "search" || searchVisited) && (
+              <div hidden={page !== "search"}>
+                <ResourceSearch
+                  key={resourceQuery}
+                  api={api!}
+                  session={session}
+                  initialQuery={resourceQuery}
+                  back={searchBack ? () => go("discover") : undefined}
+                  media={resourceMedia}
+                  notify={notify}
+                  onDownloaded={(task) => {
+                    const items = [
+                      task,
+                      ...downloads.filter((t) => t.id !== task.id),
+                    ];
+                    setDownloads(items);
+                    if (session.mode === "demo")
+                      save("mediahub.hero.downloads", items);
+                  }}
+                />
+              </div>
+            )}
+            {page === "subscriptions" &&
+              (tvLoading ? (
+                <Empty>正在读取订阅…</Empty>
+              ) : (
+                <TVList
+                  items={subscriptions}
+                  download={(tv, resource) => setTVDownload({ tv, resource })}
+                  edit={setEdit}
+                  action={tvAction}
+                  add={() =>
+                    setEdit({
+                      tmdbId: "",
+                      title: "",
+                      season: 1,
+                      source: "tg",
+                      enabled: true,
+                      channels: [],
+                      match: "",
+                      exclude: "",
+                    })
+                  }
+                />
+              ))}
+            {page === "calendar" && (
+              <>
+                <Calendar
+                  items={subscriptions}
+                  edit={setEdit}
+                  download={(tv, resource) => setTVDownload({ tv, resource })}
+                />
+                <div className="media-section-heading">
+                  <h2>我的追剧 · {subscriptions.length}</h2>
+                </div>
+                <TVList
+                  items={subscriptions}
+                  edit={setEdit}
+                  action={tvAction}
+                  download={(tv, resource) => setTVDownload({ tv, resource })}
+                  add={() => go("discover")}
+                />
+              </>
+            )}
+            {page === "downloads" && (
+              <Downloads
+                tasks={downloads}
+                session={session}
+                update={setDownloads}
+                notify={notify}
               />
-            ))}
-          {page === "calendar" && (
-            <Calendar items={subscriptions} edit={setEdit} />
-          )}
-          {page === "downloads" && (
-            <DownloadList
-              tasks={downloads}
-              session={session}
-              update={setDownloads}
-              notify={notify}
-            />
-          )}
-          {page === "settings" && (
-            <Card className="media-settings">
-              <h2>运行环境</h2>
-              <p>
-                {session.mode === "demo"
-                  ? "独立演示：影视资料与资源为示例，不会向服务端发送业务请求。订阅和演示下载记录保存在当前浏览器。"
-                  : "服务模式：已连接当前站点 /api，订阅、搜索与下载操作使用真实服务。"}
-              </p>
-              <Button
-                variant="secondary"
-                onPress={() => {
-                  logout();
-                  setLiveLogin(session.mode === "demo");
-                }}
-              >
-                {session.mode === "demo" ? "切换到服务登录" : "返回独立演示"}
-              </Button>
-              <hr />
-              <h2>外观</h2>
-              <FilterTabs
-                label="主题"
-                value={dark ? "dark" : "light"}
-                options={[
-                  ["light", "浅色"],
-                  ["dark", "深色"],
-                ]}
-                onChange={(v) => setDark(v === "dark")}
-              />
-              <hr />
-              <h2>浏览缓存</h2>
-              <p>
-                榜单、探索和详情缓存 5 分钟，平台目录缓存 24 小时；最多保留 80
-                项，退出登录时清空。订阅和下载状态直接读取服务。
-              </p>
-              <Button
-                variant="secondary"
-                onPress={() => {
-                  clearCache();
-                  notify("浏览缓存已清空");
-                }}
-              >
-                清空缓存
-              </Button>
-              <hr />
-              <h2>界面参考</h2>
-              <p>原始 HeroUI Dashboard 原型保留用于对照。</p>
-              <a href="/?template=dashboard">查看原型</a>
-            </Card>
-          )}
+            )}
+            {page === "settings" && (
+              <Suspense fallback={<Empty>正在加载设置…</Empty>}>
+                <ServerSettings
+                  session={session}
+                  onSession={(s) => login(s, !!localStorage.getItem(SESSION))}
+                />
+              </Suspense>
+            )}
+          </div>
         </main>
         <footer className="media-footer">
           <span>MediaHub · 留一点时间给好故事</span>
@@ -661,24 +900,32 @@ export default function MediaApp() {
           </span>
         </footer>
       </div>
-      {detail && (
-        <Detail
-          media={detail}
-          api={api!}
-          close={() => setDetail(null)}
-          search={searchFor}
-          subscribe={(m) => {
-            setDetail(null);
-            setEdit({
-              tmdbId: m.sourceId,
-              title: m.title,
-              season: 1,
-              source: "tg",
-              enabled: true,
-              channels: [],
-              match: "",
-              exclude: "",
-            });
+      {tvDownload && (
+        <DownloadDialog
+          session={session}
+          url={tvDownload.resource.url}
+          password={tvDownload.resource.password}
+          title={tvDownload.resource.title}
+          reference={{
+            source: "tv_subscription",
+            sourceId: tvDownload.tv.id,
+            media: {
+              type: "tv",
+              title: tvDownload.tv.title,
+              provider: "tmdb",
+              providerId: tvDownload.tv.tmdbId,
+              season: tvDownload.tv.season,
+              episodes: tvDownload.resource.collectionEnd
+                ? undefined
+                : [tvDownload.resource.episode],
+            },
+          }}
+          close={() => setTVDownload(null)}
+          created={(task) => {
+            const next = [task, ...downloads.filter((t) => t.id !== task.id)];
+            setDownloads(next);
+            if (session.mode === "demo") save("mediahub.hero.downloads", next);
+            notify("任务已提交");
           }}
         />
       )}

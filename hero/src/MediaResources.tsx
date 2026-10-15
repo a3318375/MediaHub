@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button, Card, Chip, Input } from "@heroui/react";
 import {
   Copy,
@@ -6,62 +6,102 @@ import {
   RefreshCw,
   Search,
 } from "lucide-react";
-import { Overlay } from "./App";
+import { DownloadDialog } from "./MediaDownloads";
+import { mediaContextFromRecord, is115ShareURL } from "./lib/download-api";
 import {
-  read,
+  RESOURCE_SEARCH_CONFIG_CHANGED,
+  RESOURCE_SEARCH_HISTORY_KEY,
+  readResourceSearchHistory,
+  saveResourceSearchHistory,
+  type ResourceSearchMeta,
+} from "./lib/resource-search";
+import type { MediaSummary } from "./media-contract";
+import {
   request,
   safeURL,
-  save,
-  service,
   type Download,
   type Resource,
   type Resources,
   type Session,
 } from "./media-service";
-import { errorText, time, FilterTabs, Empty, type API } from "./MediaUI";
-const cloudLabels: Record<string, string> = {
-  magnet: "磁力",
-  "115": "115 网盘",
-  quark: "夸克",
-  aliyun: "阿里云盘",
-  baidu: "百度网盘",
-};
-
+import { errorText, FilterTabs, Empty, type API } from "./MediaUI";
+import { cloudLabels } from "./parity";
 export function ResourceSearch({
   api,
   session,
   initialQuery,
   notify,
   onDownloaded,
+  media,
+  back,
 }: {
   api: API;
   session: Session;
   initialQuery: string;
   notify: (s: string) => void;
   onDownloaded: (d: Download) => void;
+  media?: MediaSummary | null;
+  back?: () => void;
 }) {
-  const [query, setQuery] = useState(initialQuery);
-  const [submitted, setSubmitted] = useState("");
-  const [result, setResult] = useState<Resources | null>(null);
-  const [cloud, setCloud] = useState("all");
+  const [savedResult] = useState<{
+    query: string;
+    result: Resources;
+    cloud: string;
+    media?: MediaSummary;
+  } | null>(() => {
+    if (initialQuery) return null;
+    try {
+      const saved = JSON.parse(
+        sessionStorage.getItem("mediahub.hero.resource-result") || "null",
+      );
+      return typeof saved?.query === "string" &&
+        typeof saved.result?.total === "number" &&
+        saved.result?.linksByCloud &&
+        typeof saved.cloud === "string"
+        ? saved
+        : null;
+    } catch {
+      return null;
+    }
+  });
+  const [query, setQuery] = useState(initialQuery || savedResult?.query || "");
+  const [submitted, setSubmitted] = useState(savedResult?.query || "");
+  const [result, setResult] = useState<Resources | null>(
+    savedResult?.result || null,
+  );
+  const [cloud, setCloud] = useState(savedResult?.cloud || "all");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [history, setHistory] = useState(() =>
-    read<string[]>("mediahub.hero.search-history", []),
+    readResourceSearchHistory(localStorage).map((entry) => entry.keyword),
   );
+  const [preferences, setPreferences] = useState<
+    ResourceSearchMeta["selection"] | null
+  >(null);
+  const [autoDetect, setAutoDetect] = useState(false);
+  const autoSeen = useRef(new Set<string>());
+  const [updating, setUpdating] = useState(false);
+  const [health, setHealth] = useState<
+    Record<string, { state: string; summary?: string }>
+  >({});
+  const [checking, setChecking] = useState("");
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [download, setDownload] = useState<Resource | null>(null);
-  const [directory, setDirectory] = useState("");
-  const [saving, setSaving] = useState(false);
   const searchRun = useRef(0);
   useEffect(
     () => () => {
       searchRun.current++;
+      timers.current.forEach(clearTimeout);
     },
     [],
   );
   async function search(value = query, force = false) {
     if (!value.trim()) return;
     const run = ++searchRun.current;
+    timers.current.forEach(clearTimeout);
+    setUpdating(false);
+    setHealth({});
+    autoSeen.current.clear();
     setBusy(true);
     setError("");
     setSubmitted(value.trim());
@@ -70,19 +110,86 @@ export function ResourceSearch({
       const r = await api.search(value.trim(), force);
       if (run !== searchRun.current) return;
       setResult(r);
-      setCloud("all");
-      const next = [
-        value.trim(),
-        ...history.filter((q) => q !== value.trim()),
-      ].slice(0, 10);
-      setHistory(next);
-      save("mediahub.hero.search-history", next);
+      setCloud(Object.keys(r.linksByCloud)[0] || "all");
+      setHistory(
+        saveResourceSearchHistory(localStorage, {
+          keyword: value.trim(),
+          source: "all",
+          mode: "default",
+          cloudTypes: preferences?.cloudTypes || [],
+          plugins: preferences?.plugins || [],
+          channels: preferences?.channels || [],
+          at: Date.now(),
+        }).map((entry) => entry.keyword),
+      );
+      if (session.mode === "live") {
+        setUpdating(true);
+        for (const delay of [2000, 5000, 8000]) {
+          timers.current.push(
+            setTimeout(async () => {
+              try {
+                const incoming = await api.search(value.trim(), false, true);
+                if (run !== searchRun.current) return;
+                setResult((current) => {
+                  if (!current) return incoming;
+                  const merged: Record<string, Resource[]> = {
+                    ...current.linksByCloud,
+                  };
+                  for (const [cloud, links] of Object.entries(
+                    incoming.linksByCloud || {},
+                  )) {
+                    merged[cloud] = [
+                      ...new Map(
+                        [...(merged[cloud] || []), ...links].map((l) => [
+                          l.url,
+                          l,
+                        ]),
+                      ).values(),
+                    ];
+                  }
+                  return {
+                    ...incoming,
+                    items: [...current.items, ...incoming.items],
+                    linksByCloud: merged,
+                    total: Object.values(merged).reduce(
+                      (n, l) => n + l.length,
+                      0,
+                    ),
+                  };
+                });
+              } catch (e) {
+                if (run === searchRun.current)
+                  notify(`收集插件结果失败：${errorText(e)}`);
+              } finally {
+                if (delay === 8000 && run === searchRun.current)
+                  setUpdating(false);
+              }
+            }, delay),
+          );
+        }
+      }
     } catch (e) {
       if (run === searchRun.current) setError(errorText(e));
     } finally {
       if (run === searchRun.current) setBusy(false);
     }
   }
+  useEffect(() => {
+    if (!result) return;
+    try {
+      sessionStorage.setItem(
+        "mediahub.hero.resource-result",
+        JSON.stringify({
+          query: submitted,
+          result,
+          cloud,
+          media: media || savedResult?.media,
+        }),
+      );
+    } catch {
+      /* Keep the in-memory result when storage is unavailable. */
+    }
+  }, [submitted, result, cloud, media, savedResult]);
   useEffect(() => {
     if (initialQuery) void search(initialQuery);
   }, []);
@@ -91,6 +198,97 @@ export function ResourceSearch({
     .flatMap(([key, values]) =>
       values.map((r) => ({ ...r, cloud: r.cloud || key })),
     );
+  useEffect(() => {
+    if (session.mode !== "live") return;
+    let active = true;
+    const load = () =>
+      request<{ data: ResourceSearchMeta }>("/api/v1/resources/meta", session)
+        .then((r) => {
+          if (active) {
+            setAutoDetect(r.data.selection.detectionEnabled);
+            setPreferences(r.data.selection);
+          }
+        })
+        .catch(() => {});
+    void load();
+    window.addEventListener(RESOURCE_SEARCH_CONFIG_CHANGED, load);
+    return () => {
+      active = false;
+      window.removeEventListener(RESOURCE_SEARCH_CONFIG_CHANGED, load);
+    };
+  }, [session]);
+  const linkData = JSON.stringify(links);
+  useEffect(() => {
+    if (!autoDetect || !window.IntersectionObserver) return;
+    let active = true;
+    let timer: ReturnType<typeof setTimeout>;
+    const pending = new Map<string, Resource>();
+    const inFlight = new Set<string>();
+    const current = JSON.parse(linkData) as Resource[];
+    async function flush() {
+      const batch = [...pending.values()].slice(0, 10);
+      batch.forEach((r) => {
+        pending.delete(r.url);
+        inFlight.add(r.url);
+      });
+      try {
+        const r = await request<{
+          results: { url: string; state: string; summary?: string }[];
+        }>("/api/v1/resources/check", session, "POST", {
+          items: batch.map((l) => ({
+            disk_type: l.cloud,
+            url: l.url,
+            password: l.password,
+          })),
+        });
+        if (active)
+          setHealth((old) => ({
+            ...old,
+            ...Object.fromEntries(r.results.map((i) => [i.url, i])),
+          }));
+      } catch {
+        if (active)
+          setHealth((old) => ({
+            ...old,
+            ...Object.fromEntries(
+              batch.map((l) => [
+                l.url,
+                { state: "uncertain", summary: "检测失败，可手动重试" },
+              ]),
+            ),
+          }));
+      } finally {
+        batch.forEach((r) => inFlight.delete(r.url));
+        if (active && pending.size) timer = setTimeout(flush, 150);
+      }
+    }
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const link =
+          current[Number((entry.target as HTMLElement).dataset.resourceIndex)];
+        if (!link || autoSeen.current.has(link.url)) continue;
+        autoSeen.current.add(link.url);
+        pending.set(link.url, link);
+        observer.unobserve(entry.target);
+      }
+      if (pending.size) {
+        clearTimeout(timer);
+        timer = setTimeout(flush, 150);
+      }
+    });
+    document
+      .querySelectorAll("[data-resource-index]")
+      .forEach((el) => observer.observe(el));
+    return () => {
+      active = false;
+      observer.disconnect();
+      clearTimeout(timer);
+      [...pending.keys(), ...inFlight].forEach((url) =>
+        autoSeen.current.delete(url),
+      );
+    };
+  }, [autoDetect, linkData, session]);
   async function copy(link: Resource) {
     try {
       await navigator.clipboard.writeText(
@@ -101,55 +299,31 @@ export function ResourceSearch({
       notify("复制失败，请手动选择链接复制");
     }
   }
-  async function submitDownload(e: FormEvent) {
-    e.preventDefault();
-    if (!download || !directory.trim()) return;
-    setSaving(true);
-    setError("");
+  async function check(link: Resource) {
+    setChecking(link.url);
     try {
-      const magnet = download.url.startsWith("magnet:");
-      const task =
-        session.mode === "demo"
-          ? {
-              id: crypto.randomUUID(),
-              state: "demo",
-              resourceId: download.url,
-              progress: 0,
-              createdAt: new Date().toISOString(),
-            }
-          : (
-              await request<{ task: Download }>(
-                "/api/v1/downloads",
-                session,
-                "POST",
-                {
-                  kind: magnet ? "offline" : "share_transfer",
-                  url: download.url,
-                  directoryId: directory.trim(),
-                  wholeShare: !magnet,
-                  receiveCode: download.password || "",
-                  reference: {
-                    source: "resource-search",
-                    media: { title: submitted },
-                  },
-                },
-              )
-            ).task;
-      onDownloaded(task);
-      setDownload(null);
-      notify(
-        session.mode === "demo"
-          ? "已添加演示任务，不会执行真实下载"
-          : "任务已提交",
-      );
+      const r = await request<{
+        results: { url: string; state: string; summary?: string }[];
+      }>("/api/v1/resources/check", session, "POST", {
+        items: [
+          { disk_type: link.cloud, url: link.url, password: link.password },
+        ],
+      });
+      const result = r.results.find((i) => i.url === link.url);
+      if (result) setHealth((old) => ({ ...old, [link.url]: result }));
     } catch (e) {
-      setError(errorText(e));
+      notify(errorText(e));
     } finally {
-      setSaving(false);
+      setChecking("");
     }
   }
   return (
     <>
+      {back && (
+        <Button variant="ghost" onPress={back}>
+          返回影视探索
+        </Button>
+      )}
       <Card className="resource-search-card">
         <div className="resource-search-icon">
           <Search size={24} />
@@ -191,7 +365,21 @@ export function ResourceSearch({
             <button
               onClick={() => {
                 setHistory([]);
-                save("mediahub.hero.search-history", []);
+                try {
+                  const entries = JSON.parse(
+                    localStorage.getItem(RESOURCE_SEARCH_HISTORY_KEY) || "[]",
+                  );
+                  localStorage.setItem(
+                    RESOURCE_SEARCH_HISTORY_KEY,
+                    JSON.stringify(
+                      entries.filter(
+                        (entry: { kind?: string }) => entry.kind === "media",
+                      ),
+                    ),
+                  );
+                } catch {
+                  /* Storage unavailable. */
+                }
               }}
             >
               清空
@@ -204,11 +392,16 @@ export function ResourceSearch({
           {error}
         </p>
       )}
+      {updating && (
+        <p role="status" className="media-note">
+          正在收集插件结果…
+        </p>
+      )}
       {result && (
         <>
           <div className="media-section-heading">
             <h2>
-              “{submitted}” 的搜索结果<small>{links.length} 条链接</small>
+              “{submitted}” 的搜索结果<small>{result.total} 条链接</small>
             </h2>
             <Button
               size="sm"
@@ -224,17 +417,20 @@ export function ResourceSearch({
             label="网盘"
             value={cloud}
             options={[
-              ["all", "全部"],
               ...Object.keys(result.linksByCloud).map((k) => [
                 k,
-                cloudLabels[k] || k,
+                `${cloudLabels[k] || k} (${result.linksByCloud[k].length})`,
               ]),
             ]}
             onChange={setCloud}
           />
           <div className="resource-grid">
             {links.map((r, i) => (
-              <Card className="resource-card" key={`${r.url}-${i}`}>
+              <Card
+                className="resource-card"
+                data-resource-index={i}
+                key={`${r.url}-${i}`}
+              >
                 <div>
                   <Chip size="sm" variant="soft">
                     {cloudLabels[r.cloud] || r.cloud}
@@ -251,16 +447,56 @@ export function ResourceSearch({
                 <a href={safeURL(r.url)} target="_blank" rel="noreferrer">
                   {r.url}
                 </a>
-                {r.password && <p>提取码：{r.password}</p>}
+                {r.password && (
+                  <p>
+                    提取码：{r.password}{" "}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onPress={async () => {
+                        try {
+                          await navigator.clipboard.writeText(r.password!);
+                          notify("提取码已复制");
+                        } catch {
+                          notify("复制失败，请手动复制提取码");
+                        }
+                      }}
+                    >
+                      复制提取码
+                    </Button>
+                  </p>
+                )}
+                {health[r.url] && (
+                  <p className="media-note">
+                    链接检测：
+                    {(
+                      {
+                        ok: "有效",
+                        bad: "失效",
+                        locked: "需要提取码",
+                        unsupported: "暂不支持",
+                        uncertain: "待确认",
+                      } as Record<string, string>
+                    )[health[r.url].state] || health[r.url].state}{" "}
+                    · {health[r.url].summary}
+                  </p>
+                )}
                 <div className="resource-actions">
+                  {session.mode === "live" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      isDisabled={!!checking}
+                      onPress={() => void check(r)}
+                    >
+                      {checking === r.url ? "检测中…" : "检测链接"}
+                    </Button>
+                  )}
                   <Button size="sm" variant="secondary" onPress={() => copy(r)}>
                     <Copy size={14} />
                     复制链接
                   </Button>
-                  {(r.url.startsWith("magnet:") ||
-                    /^https:\/\/(115\.com|115cdn\.com|anxia\.com)\/s\/[A-Za-z0-9]+/.test(
-                      r.url,
-                    )) && (
+                  {(r.url.startsWith("magnet:") || is115ShareURL(r.url)) && (
                     <Button
                       size="sm"
                       variant="ghost"
@@ -270,7 +506,7 @@ export function ResourceSearch({
                       }}
                     >
                       <DownloadIcon size={14} />
-                      {r.url.startsWith("magnet:") ? "离线下载" : "整份转存"}
+                      {r.url.startsWith("magnet:") ? "离线下载" : "分享转存"}
                     </Button>
                   )}
                 </div>
@@ -290,111 +526,22 @@ export function ResourceSearch({
       )}
       {busy && <Empty>正在聚合搜索结果，请稍候…</Empty>}
       {download && (
-        <Overlay
-          title={
-            download.url.startsWith("magnet:")
-              ? "提交 115 离线下载"
-              : "整份分享转存到 115"
+        <DownloadDialog
+          url={download.url}
+          title={submitted}
+          password={download.password}
+          media={
+            media || savedResult?.media
+              ? mediaContextFromRecord((media || savedResult?.media)!)
+              : undefined
           }
-          onClose={() => setDownload(null)}
-        >
-          <form className="media-form" onSubmit={submitDownload}>
-            <p>{submitted}</p>
-            <p className="media-note">
-              {session.mode === "demo"
-                ? "此操作只创建本地演示记录。"
-                : download.url.startsWith("magnet:")
-                  ? "确认后由已连接的 115 服务执行离线下载。"
-                  : "确认后转存整个分享。需要选择单个文件时请使用原前端。"}
-            </p>
-            <label>
-              115 目标目录 ID
-              <Input
-                aria-label="115 目标目录 ID"
-                value={directory}
-                onChange={(e) => setDirectory(e.target.value)}
-                placeholder="例如 0（根目录）"
-                required
-              />
-            </label>
-            {error && (
-              <p role="alert" className="media-error">
-                {error}
-              </p>
-            )}
-            <Button type="submit" isDisabled={saving}>
-              {saving ? "正在提交…" : "确认提交"}
-            </Button>
-          </form>
-        </Overlay>
-      )}
-    </>
-  );
-}
-
-export function DownloadList({
-  tasks,
-  session,
-  update,
-  notify,
-}: {
-  tasks: Download[];
-  session: Session;
-  update: (d: Download[]) => void;
-  notify: (s: string) => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  async function refresh() {
-    setBusy(true);
-    try {
-      update(await service(session).downloads());
-    } catch (e) {
-      notify(errorText(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <>
-      <div className="media-section-heading">
-        <h2>
-          任务记录<small>{tasks.length} 项</small>
-        </h2>
-        <Button variant="secondary" isDisabled={busy} onPress={refresh}>
-          <RefreshCw size={14} />
-          刷新状态
-        </Button>
-      </div>
-      {tasks.length ? (
-        <div className="resource-grid">
-          {tasks.map((t) => (
-            <Card className="resource-card" key={t.id}>
-              <div>
-                <DownloadIcon size={20} />
-                <Chip variant="soft" size="sm">
-                  {(
-                    {
-                      demo: "演示任务",
-                      queued: "排队中",
-                      running: "进行中",
-                      completed: "已完成",
-                      failed: "失败",
-                      cancelled: "已取消",
-                    } as Record<string, string>
-                  )[t.state] || t.state}
-                </Chip>
-              </div>
-              <h3>{t.resourceId || t.id}</h3>
-              <progress max="100" value={t.progress} />
-              <p>
-                {t.progress}% · {time(t.createdAt)}
-              </p>
-              {t.error && <p className="media-error">{t.error}</p>}
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <Empty>还没有下载任务，可以从资源搜索中提交。</Empty>
+          session={session}
+          close={() => setDownload(null)}
+          created={(task) => {
+            onDownloaded(task);
+            notify(session.mode === "demo" ? "已添加演示任务" : "任务已提交");
+          }}
+        />
       )}
     </>
   );
