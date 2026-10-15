@@ -2,28 +2,22 @@ import { useEffect,useState } from "react";
 
 import { Button } from "@heroui/react";
 
+import { Overlay } from "../../components/ui/Overlay";
 
-import { Overlay } from '../../components/ui/Overlay';
-
-import {
-type SavedAnimeSubscription
-} from "../../lib/anime-api";
+import { type SavedAnimeSubscription } from "../../lib/anime-api";
 
 import {
-directoryIdFromInput,
 downloadApi,
-type AnimeDownloadCandidate,
+type AnimeDownloadCandidate
 } from "../../lib/download-api";
 
 import { read,save,type Session } from "../../lib/media-service";
 
 import {
-DirectoryField,
 Field,
 Notice,
 Toggle
 } from "../../components/ui/ManagementUI";
-
 
 import { errorText } from "../../components/media/MediaUI";
 
@@ -36,7 +30,6 @@ export function AnimeDownloads({
   session: Session;
   close: () => void;
 }) {
-  const [useLibrary, setUseLibrary] = useState(true);
   const [rule, setRule] = useState({
     enabled: false,
     directoryId: "",
@@ -56,7 +49,6 @@ export function AnimeDownloads({
         fromEpisode: 1,
       });
       setRule(saved);
-      setUseLibrary(!saved.directoryId || saved.directoryId === "library");
       setLoaded(true);
       setBusy(false);
       return;
@@ -66,9 +58,6 @@ export function AnimeDownloads({
       .then((r) => {
         if (!c.signal.aborted) {
           setRule(r.rule);
-          setUseLibrary(
-            !r.rule.directoryId || r.rule.directoryId === "library",
-          );
           setItems(r.items);
           setLoaded(true);
         }
@@ -92,8 +81,10 @@ export function AnimeDownloads({
       setBusy(false);
     }
   }
+  const preview = items.length ? items : anime.resources.filter(r => r.accepted && r.episode !== null && Number.isInteger(r.episode)).map((r,i) => ({ id: String(i), title: r.title, episode: r.episode as number, state: "pending", error: "" }));
+  const inRange = preview.filter(i => i.episode >= rule.fromEpisode);
   return (
-    <Overlay title={`${anime.title} · 自动下载`} onClose={close}>
+    <Overlay title={`${anime.title} · 下载记录与范围`} onClose={() => { if (!busy) close(); }}>
       <form
         className="management-stack"
         onSubmit={(e) => {
@@ -103,14 +94,12 @@ export function AnimeDownloads({
               throw new Error("起始集数必须为正整数");
             const value = {
               ...rule,
-              directoryId: useLibrary
-                ? "library"
-                : directoryIdFromInput(rule.directoryId),
+              directoryId: "library",
             };
             if (session.mode === "live")
               await downloadApi.saveAnime(anime.id, value);
             else save(`mediahub.hero.anime-download.${anime.id}`, value);
-            setNotice("自动下载规则已保存");
+            close();
           });
         }}
       >
@@ -120,27 +109,7 @@ export function AnimeDownloads({
           checked={rule.enabled}
           onChange={(v) => setRule({ ...rule, enabled: v })}
         />
-        <Toggle
-          label="按媒体库配置自动归类"
-          checked={useLibrary}
-          onChange={(v) => {
-            setUseLibrary(v);
-            if (!v && rule.directoryId === "library")
-              setRule({ ...rule, directoryId: "" });
-          }}
-        />
-        {useLibrary ? (
-          <p className="media-note">
-            使用影视整理中保存的未整理目录，并按动漫分类。
-          </p>
-        ) : (
-          <DirectoryField
-            label="115 目标目录"
-            value={rule.directoryId}
-            onChange={(v) => setRule({ ...rule, directoryId: v })}
-            session={session}
-          />
-        )}
+        <p className="media-note">使用设置中的统一下载目录，不需要为每部番剧单独填写目录。暂停订阅会停止产生新下载，已入队任务继续。</p>
         <Field
           label="起始集数"
           type="number"
@@ -157,26 +126,26 @@ export function AnimeDownloads({
             void act(async () => {
               const r = await downloadApi.retryAnime(anime.id);
               setItems((await downloadApi.getAnime(anime.id)).items);
-              setNotice(`已重新排队 ${r.count} 项`);
+              if (r.count === 0) setError("没有范围内可重试的资源，请先保存启用状态和下载范围。");
+              else setNotice(`已重新排队 ${r.count} 项`);
             })
           }
         >
           重试失败候选
         </Button>
-        {items
-          .filter((i) => i.episode >= rule.fromEpisode)
-          .map((i) => (
+        <p>{busy ? "正在读取候选…" : `当前范围内 ${inRange.length} 个资源候选；已入队资源不会重复提交。`}</p>
+        {inRange.map((i) => (
             <div className="management-row" key={i.id}>
               <div>
                 {i.title}
                 <small>
-                  第 {i.episode} 集 · {i.state}
+                  第 {i.episode} 集 · {({queued: "已入队", failed: "解析失败", resolving: "解析中", retry: "待重试"} as Record<string,string>)[i.state] || "待选择"}
                   {i.error ? ` · ${i.error}` : ""}
                 </small>
               </div>
             </div>
           ))}
-        {!items.length && <p>尚无下载候选，订阅同步后自动生成。</p>}
+        {!inRange.length && <p>尚无下载候选，订阅同步后自动生成。</p>}
       </form>
     </Overlay>
   );

@@ -1,13 +1,4 @@
-
-
-
-
-
-
-
-
 import type { MediaSummary } from "./media-contract";
-
 
 export function animeMedia(a: {
   id: string;
@@ -21,7 +12,7 @@ export function animeMedia(a: {
 }): MediaSummary {
   const rating = Number(a.rating);
   return {
-    mediaId: `anime-subscription:${a.id}`,
+    mediaId: `bangumi:anime:${a.bangumiId || a.id}`,
     provider: "bangumi",
     providerId: a.bangumiId || a.id,
     source: "bangumi",

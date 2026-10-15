@@ -559,8 +559,8 @@ export default function MediaApp() {
               {page === "emby" && <Emby session={session} open={setDetail} />}
               {page === "anime" && (
                 <AnimeSubscriptions
+                  open={setDetail}
                   session={session}
-                  search={(m) => searchFor(m.title, m)}
                 />
               )}
               {page === "organize" && <Organize session={session} />}
@@ -675,8 +675,7 @@ export default function MediaApp() {
                     api={api!}
                     demo={session.mode === "demo"}
                     open={setDetail}
-                    search={(m) => searchFor(m.title, m)}
-                    subscribe={(m) =>
+                      subscribe={(m) =>
                       setEdit({
                         tmdbId: m.sourceId,
                         title: m.title,
