@@ -1,29 +1,27 @@
-import { useEffect,useRef,useState } from "react";
-import {
-mediaContextFromRecord
-} from "../lib/download-api";
-import {
-errorText,
-type API
-} from "../lib/formatters";
+import { useEffect, useRef, useState } from "react";
+import { mediaContextFromRecord } from "../lib/download-api";
+import { errorText, type API } from "../lib/formatters";
 import type { MediaSummary } from "../lib/media-contract";
 import {
-normalizeResources,
-request,
-type Download,
-type Resource,
-type Resources,
-type Session
+  normalizeResources,
+  request,
+  type Download,
+  type Resource,
+  type Resources,
+  type Session,
 } from "../lib/media-service";
 import {
-RESOURCE_SEARCH_CONFIG_CHANGED,
-readMediaSearchHistory,
-readResourceSearchHistory,
-resourceSearchPlan,
-saveResourceSearchHistory,
-type ResourceSearchMeta
+  RESOURCE_SEARCH_CONFIG_CHANGED,
+  readMediaSearchHistory,
+  readResourceSearchHistory,
+  resourceSearchPlan,
+  saveResourceSearchHistory,
+  type ResourceSearchMeta,
 } from "../lib/resource-search";
-import { mergeResourceResults,transferSearchResource } from "../lib/resource-workflow";
+import {
+  mergeResourceResults,
+  transferSearchResource,
+} from "../lib/resource-workflow";
 import { useResourceHealth } from "./useResourceHealth";
 export function useResourceSearch({
   api,
@@ -56,7 +54,7 @@ export function useResourceSearch({
         typeof saved.result?.total === "number" &&
         saved.result?.linksByCloud &&
         typeof saved.cloud === "string"
-        ? saved
+        ? { ...saved, result: normalizeResources(saved.result) }
         : null;
     } catch {
       return null;
@@ -115,7 +113,11 @@ export function useResourceSearch({
           ? (
               await request<{ data: ResourceSearchMeta }>(
                 "/api/v1/resources/meta",
-                session, "GET", undefined, 30_000, controller.signal,
+                session,
+                "GET",
+                undefined,
+                30_000,
+                controller.signal,
               )
             ).data.selection
           : preferences;
@@ -125,20 +127,24 @@ export function useResourceSearch({
       if (run !== searchRun.current || controller.signal.aborted) return;
       const call = async (source: string) =>
         session.mode === "live"
-          ? normalizeResources((
-              await request<{ data: Resources }>(
-                "/api/v1/resources/search",
-                session,
-                "POST",
-                {
-                  query: value.trim(),
-                  source,
-                  mode: "merge",
-                  ...selection,
-                  refresh: false,
-                }, 30_000, controller.signal,
-              )
-            ).data)
+          ? normalizeResources(
+              (
+                await request<{ data: Resources }>(
+                  "/api/v1/resources/search",
+                  session,
+                  "POST",
+                  {
+                    query: value.trim(),
+                    source,
+                    mode: "merge",
+                    ...selection,
+                    refresh: false,
+                  },
+                  30_000,
+                  controller.signal,
+                )
+              ).data,
+            )
           : api.search(value.trim(), force);
       if (plan?.warmup) void call(plan.fullSource).catch(() => {});
       const r = await call(plan?.firstSource || "all");
@@ -163,23 +169,37 @@ export function useResourceSearch({
       if (session.mode === "live" && plan?.collect) {
         setUpdating(true);
         for (const delay of [2000, 3000, 3000]) {
-          await new Promise<void>(resolve => {
-            const stop = () => { clearTimeout(timer); resolve(); };
-            const timer = setTimeout(() => { controller.signal.removeEventListener("abort", stop); resolve(); }, delay);
+          await new Promise<void>((resolve) => {
+            const stop = () => {
+              clearTimeout(timer);
+              resolve();
+            };
+            const timer = setTimeout(() => {
+              controller.signal.removeEventListener("abort", stop);
+              resolve();
+            }, delay);
             controller.signal.addEventListener("abort", stop, { once: true });
           });
           if (run !== searchRun.current || controller.signal.aborted) return;
           try {
             const incoming = await call(plan.fullSource);
             if (run !== searchRun.current || controller.signal.aborted) return;
-            setResult(current => current ? mergeResourceResults(current, incoming) : incoming);
-          } catch (e) { if (run === searchRun.current && !controller.signal.aborted) setError(errorText(e)); }
+            setResult((current) =>
+              current ? mergeResourceResults(current, incoming) : incoming,
+            );
+          } catch (e) {
+            if (run === searchRun.current && !controller.signal.aborted)
+              setError(errorText(e));
+          }
         }
       }
     } catch (e) {
       if (run === searchRun.current) setError(errorText(e));
     } finally {
-      if (run === searchRun.current) { setBusy(false); setUpdating(false); }
+      if (run === searchRun.current) {
+        setBusy(false);
+        setUpdating(false);
+      }
     }
   }
   useEffect(() => {
@@ -227,7 +247,12 @@ export function useResourceSearch({
       window.removeEventListener(RESOURCE_SEARCH_CONFIG_CHANGED, load);
     };
   }, [session]);
-  const { health, checking, check } = useResourceHealth(links, autoDetect, session, notify);
+  const { health, checking, check } = useResourceHealth(
+    links,
+    autoDetect,
+    session,
+    notify,
+  );
   useEffect(() => {
     if (!result) return;
     const keys = Object.keys(result.linksByCloud).filter(
@@ -244,7 +269,12 @@ export function useResourceSearch({
       const m = context.current.media
         ? mediaContextFromRecord(context.current.media)
         : undefined;
-      const response = await transferSearchResource(link, result?.items.find(i => i.links?.some(l => l.url === link.url))?.title || submitted, m);
+      const response = await transferSearchResource(
+        link,
+        result?.items.find((i) => i.links?.some((l) => l.url === link.url))
+          ?.title || submitted,
+        m,
+      );
       onDownloaded(response.task);
       notify("已加入下载队列，完成后按设置自动整理。");
     } catch (e) {
@@ -265,5 +295,27 @@ export function useResourceSearch({
     }
   }
 
-return {query,setQuery,submitted,result,cloud,setCloud,error,busy,history,setHistory,updating,health,checking,downloading,mediaHistory,setMediaHistory,search,links,transfer,copy,check};
+  return {
+    query,
+    setQuery,
+    submitted,
+    result,
+    cloud,
+    setCloud,
+    error,
+    busy,
+    history,
+    setHistory,
+    updating,
+    health,
+    checking,
+    downloading,
+    mediaHistory,
+    setMediaHistory,
+    search,
+    links,
+    transfer,
+    copy,
+    check,
+  };
 }

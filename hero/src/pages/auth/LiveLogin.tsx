@@ -1,27 +1,10 @@
-import {
-useEffect,
-useState,
-type FormEvent
-} from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
-import { Button,Card,Input } from "@heroui/react";
+import { Button, Card, Input } from "@heroui/react";
 
-
-
-
-
-
-import {
-request,
-type Session
-} from "../../lib/media-service";
-
+import { request, type Session } from "../../lib/media-service";
 
 import { errorText } from "../../components/media/MediaUI";
-
-
-
-
 
 export function LiveLogin({
   onLogin,
@@ -112,7 +95,7 @@ export function LiveLogin({
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
+              autoComplete={setup ? "new-password" : "current-password"}
               required
             />
           </label>
@@ -122,6 +105,7 @@ export function LiveLogin({
               <Input
                 aria-label="确认密码"
                 type="password"
+                autoComplete="new-password"
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
                 required

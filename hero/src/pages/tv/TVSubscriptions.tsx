@@ -1,24 +1,18 @@
 import { useState } from "react";
 
-import { Button,Card,Chip } from "@heroui/react";
+import { Button, Card, Chip } from "@heroui/react";
 
-import {
-Plus,
-RefreshCw,
-Trash2,
-Tv
-} from "lucide-react";
+import { Plus, RefreshCw, Trash2, Tv } from "lucide-react";
 
 import { is115ShareURL } from "../../lib/download-api";
 
-import { Overlay } from '../../components/ui/Overlay';
+import { Overlay } from "../../components/ui/Overlay";
 
-import { image,safeURL,type TV } from "../../lib/media-service";
+import { image, safeURL, type TV } from "../../lib/media-service";
 
-import { Empty,FilterTabs,time } from "../../components/media/MediaUI";
-export { Calendar } from './Calendar';
-export { TVEditor } from './TVEditor';
-
+import { Empty, FilterTabs, time } from "../../components/media/MediaUI";
+export { Calendar } from "./Calendar";
+export { TVEditor } from "./TVEditor";
 
 export function TVList({
   items,
@@ -37,10 +31,14 @@ export function TVList({
   const [remove, setRemove] = useState<TV | null>(null);
   const [busy, setBusy] = useState("");
   async function act(s: TV, a: "toggle" | "refresh" | "remove") {
+    if (busy) return;
     setBusy(s.id);
-    await action(s, a);
-    setBusy("");
-    if (a === "remove") setRemove(null);
+    try {
+      await action(s, a);
+      if (a === "remove") setRemove(null);
+    } finally {
+      setBusy("");
+    }
   }
   const selected = items.filter(
     (s) => filter === "all" || s.enabled === (filter === "active"),
@@ -93,11 +91,18 @@ export function TVList({
                 </span>
               </div>
               <p className="media-note">上次检查：{time(s.lastCheckedAt)}</p>
+              {(!s.episodes.length || s.episodes.some((e) => !e.airDate)) && (
+                <p className="media-note">
+                  部分或全部播出日期未知，每天检查一次。
+                </p>
+              )}
               {s.nextCheckAt && (
                 <p className="media-note">下次检查：{time(s.nextCheckAt)}</p>
               )}
               {(s.lastError || s.metadataError) && (
-                <p className="media-error">{s.lastError || s.metadataError}</p>
+                <p className="media-error">
+                  {[s.metadataError, s.lastError].filter(Boolean).join("；")}
+                </p>
               )}
               {s.resources.length > 0 && (
                 <details>
@@ -112,8 +117,12 @@ export function TVList({
                       >
                         E{r.episode}
                         {r.collectionEnd ? `–${r.collectionEnd}` : ""} ·{" "}
-                        {r.title}
+                        {r.title} · {r.cloud === "115" ? "115 分享" : "磁力"} ·{" "}
+                        {(r.size || 0) > 0
+                          ? `${(r.size! / 1024 ** 3).toFixed(2)} GB`
+                          : "体积未知"}
                       </a>
+                      {r.password && <small>提取码：{r.password}</small>}
                       {(r.url.startsWith("magnet:") ||
                         is115ShareURL(r.url)) && (
                         <Button
@@ -135,7 +144,7 @@ export function TVList({
                 <Button
                   size="sm"
                   variant="ghost"
-                  isDisabled={busy === s.id}
+                  isDisabled={!!busy}
                   onPress={() => act(s, "toggle")}
                 >
                   {s.enabled ? "暂停" : "恢复"}
@@ -143,7 +152,7 @@ export function TVList({
                 <Button
                   size="sm"
                   variant="ghost"
-                  isDisabled={busy === s.id}
+                  isDisabled={!!busy}
                   onPress={() => act(s, "refresh")}
                 >
                   <RefreshCw size={14} />

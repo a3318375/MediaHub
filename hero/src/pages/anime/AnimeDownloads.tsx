@@ -1,4 +1,4 @@
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@heroui/react";
 
@@ -7,17 +7,13 @@ import { Overlay } from "../../components/ui/Overlay";
 import { type SavedAnimeSubscription } from "../../lib/anime-api";
 
 import {
-downloadApi,
-type AnimeDownloadCandidate
+  downloadApi,
+  type AnimeDownloadCandidate,
 } from "../../lib/download-api";
 
-import { read,save,type Session } from "../../lib/media-service";
+import { read, save, type Session } from "../../lib/media-service";
 
-import {
-Field,
-Notice,
-Toggle
-} from "../../components/ui/ManagementUI";
+import { Field, Notice, Toggle } from "../../components/ui/ManagementUI";
 
 import { errorText } from "../../components/media/MediaUI";
 
@@ -81,10 +77,28 @@ export function AnimeDownloads({
       setBusy(false);
     }
   }
-  const preview = items.length ? items : anime.resources.filter(r => r.accepted && r.episode !== null && Number.isInteger(r.episode)).map((r,i) => ({ id: String(i), title: r.title, episode: r.episode as number, state: "pending", error: "" }));
-  const inRange = preview.filter(i => i.episode >= rule.fromEpisode);
+  const preview = items.length
+    ? items
+    : anime.resources
+        .filter(
+          (r) =>
+            r.accepted && r.episode !== null && Number.isInteger(r.episode),
+        )
+        .map((r, i) => ({
+          id: String(i),
+          title: r.title,
+          episode: r.episode as number,
+          state: "pending",
+          error: "",
+        }));
+  const inRange = preview.filter((i) => i.episode >= rule.fromEpisode);
   return (
-    <Overlay title={`${anime.title} · 下载记录与范围`} onClose={() => { if (!busy) close(); }}>
+    <Overlay
+      title={`${anime.title} · 下载记录与范围`}
+      onClose={() => {
+        if (!busy) close();
+      }}
+    >
       <form
         className="management-stack"
         onSubmit={(e) => {
@@ -109,7 +123,9 @@ export function AnimeDownloads({
           checked={rule.enabled}
           onChange={(v) => setRule({ ...rule, enabled: v })}
         />
-        <p className="media-note">使用设置中的统一下载目录，不需要为每部番剧单独填写目录。暂停订阅会停止产生新下载，已入队任务继续。</p>
+        <p className="media-note">
+          使用设置中的统一下载目录，不需要为每部番剧单独填写目录。暂停订阅会停止产生新下载，已入队任务继续。
+        </p>
         <Field
           label="起始集数"
           type="number"
@@ -126,25 +142,40 @@ export function AnimeDownloads({
             void act(async () => {
               const r = await downloadApi.retryAnime(anime.id);
               setItems((await downloadApi.getAnime(anime.id)).items);
-              if (r.count === 0) setError("没有范围内可重试的资源，请先保存启用状态和下载范围。");
+              if (r.count === 0)
+                setError(
+                  "没有范围内可重试的资源，请先保存启用状态和下载范围。",
+                );
               else setNotice(`已重新排队 ${r.count} 项`);
             })
           }
         >
           重试失败候选
         </Button>
-        <p>{busy ? "正在读取候选…" : `当前范围内 ${inRange.length} 个资源候选；已入队资源不会重复提交。`}</p>
+        <p>
+          {busy
+            ? "正在读取候选…"
+            : `当前范围内 ${inRange.length} 个资源候选；已入队资源不会重复提交。`}
+        </p>
         {inRange.map((i) => (
-            <div className="management-row" key={i.id}>
-              <div>
-                {i.title}
-                <small>
-                  第 {i.episode} 集 · {({queued: "已入队", failed: "解析失败", resolving: "解析中", retry: "待重试"} as Record<string,string>)[i.state] || "待选择"}
-                  {i.error ? ` · ${i.error}` : ""}
-                </small>
-              </div>
+          <div className="management-row" key={i.id}>
+            <div>
+              {i.title}
+              <small>
+                第 {i.episode} 集 ·{" "}
+                {(
+                  {
+                    queued: "已入队",
+                    failed: "解析失败",
+                    resolving: "解析中",
+                    retry: "待重试",
+                  } as Record<string, string>
+                )[i.state] || "待选择"}
+                {i.error ? ` · ${i.error}` : ""}
+              </small>
             </div>
-          ))}
+          </div>
+        ))}
         {!inRange.length && <p>尚无下载候选，订阅同步后自动生成。</p>}
       </form>
     </Overlay>

@@ -1,75 +1,78 @@
 import {
-useEffect,
-useMemo,
-useRef,
-useState,
-type FormEvent,
-type ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
 } from "react";
 
 import {
-Button,
-Card,
-Checkbox,
-Chip,
-Dropdown,
-Input,
-Tabs
+  Button,
+  Card,
+  Checkbox,
+  Chip,
+  Dropdown,
+  Input,
+  Tabs,
 } from "@heroui/react";
 
 import {
-ArrowDown,
-ArrowDownToLine,
-ArrowRight,
-ArrowUp,
-ArrowUpDown,
-Bell,
-CalendarDays,
-ChartColumnIncreasing,
-Check,
-ChevronDown,
-CircleHelp,
-Columns3,
-Copy,
-Eye,
-House,
-ListChecks,
-LogOut,
-Mail,
-Menu,
-Moon,
-MoreVertical,
-PanelLeft,
-Pencil,
-Plus,
-ReceiptText,
-RefreshCcw,
-Search,
-Settings,
-SlidersHorizontal,
-Sun,
-Trash2,
-UserPlus,
-X
+  ArrowDownToLine,
+  ArrowRight,
+  ArrowUpDown,
+  Bell,
+  CalendarDays,
+  ChartColumnIncreasing,
+  Check,
+  ChevronDown,
+  CircleHelp,
+  Columns3,
+  Copy,
+  Eye,
+  House,
+  ListChecks,
+  LogOut,
+  Mail,
+  Menu,
+  Moon,
+  MoreVertical,
+  PanelLeft,
+  Pencil,
+  Plus,
+  ReceiptText,
+  RefreshCcw,
+  Search,
+  Settings,
+  SlidersHorizontal,
+  Sun,
+  Trash2,
+  UserPlus,
+  X,
 } from "lucide-react";
 
 import {
-DEMO_EMAIL,
-DEMO_PASSWORD,
-EMPLOYEES_KEY,
-SESSION_KEY,
-initialEmployees,
-readEmployees,
-readSession,
-type Employee,
+  DEMO_EMAIL,
+  DEMO_PASSWORD,
+  EMPLOYEES_KEY,
+  SESSION_KEY,
+  initialEmployees,
+  readEmployees,
+  readSession,
+  type Employee,
 } from "./data";
 
-import { Overlay } from '../components/ui/Overlay';
-import { SalesChart,TrafficChart } from "./charts";
-import { Login } from './DemoLogin';
-export { Overlay } from '../components/ui/Overlay';
-export { Login } from './DemoLogin';
+import { Overlay } from "../components/ui/Overlay";
 
+import { SalesChart, TrafficChart } from "./charts";
+
+import { Login } from "./DemoLogin";
+import { Avatar, Growth } from "./DemoPrimitives";
+export { Avatar, Growth } from "./DemoPrimitives";
+
+export { Overlay } from "../components/ui/Overlay";
+
+export { Login } from "./DemoLogin";
 
 type DialogState =
   | { kind: "invite" }
@@ -84,7 +87,6 @@ const navItems = [
   { id: "analytics", label: "Analytics", icon: ChartColumnIncreasing },
   { id: "settings", label: "Settings", icon: Settings },
 ];
-
 
 function ChoiceMenu({
   label,
@@ -133,43 +135,6 @@ function ChoiceMenu({
     </Dropdown>
   );
 }
-
-export function Avatar({
-  name = "Kate Moore",
-  avatar = "blue-light",
-  className = "",
-}: {
-  name?: string;
-  avatar?: string;
-  className?: string;
-}) {
-  return (
-    <img
-      src={`/avatars/${avatar}.jpg`}
-      alt={name}
-      className={`avatar ${className}`}
-    />
-  );
-}
-
-export function Growth({
-  value = "3.3%",
-  negative = false,
-  soft = false,
-}: {
-  value?: string;
-  negative?: boolean;
-  soft?: boolean;
-}) {
-  return (
-    <span
-      className={`growth ${negative ? "negative" : ""} ${soft ? "soft" : ""}`}
-    >
-      {negative ? <ArrowDown size={11} /> : <ArrowUp size={11} />} {value}
-    </span>
-  );
-}
-
 
 export default function App() {
   const [session, setSession] = useState(readSession);

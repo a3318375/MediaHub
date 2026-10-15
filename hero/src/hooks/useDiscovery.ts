@@ -1,17 +1,9 @@
-import { useEffect,useState } from "react";
-import {
-errorText,
-type API
-} from "../components/media/MediaUI";
+import { useEffect, useState } from "react";
 import { charts } from "../lib/catalog-options";
-import type {
-MediaSummary,
-ProviderCapabilities,
-} from "../lib/media-contract";
+import { errorText, type API } from "../lib/formatters";
+import type { MediaSummary, ProviderCapabilities } from "../lib/media-contract";
 import { type Platform } from "../lib/media-service";
-import {
-readMediaSearchHistory
-} from "../lib/resource-search";
+import { readMediaSearchHistory } from "../lib/resource-search";
 export function useDiscovery({
   ranking,
   api,
@@ -58,14 +50,29 @@ export function useDiscovery({
         if (!active) return;
         setCapabilities(r.providers);
         if (!ranking) {
-          const available = r.providers.find(p => p.source === source && p.available) || r.providers.find(p => p.available);
-          if (!available) { setError(`当前没有可用数据源。${r.providers[0]?.unavailableReason || ""}`); setBusy(false); return; }
+          const available =
+            r.providers.find((p) => p.source === source && p.available) ||
+            r.providers.find((p) => p.available);
+          if (!available) {
+            setError(
+              `当前没有可用数据源。${r.providers[0]?.unavailableReason || ""}`,
+            );
+            setBusy(false);
+            return;
+          }
           setSource(available.source);
-          setType(current => available.mediaTypes.includes(current as never) ? current : available.mediaTypes[0]);
+          setType((current) =>
+            available.mediaTypes.includes(current as never)
+              ? current
+              : available.mediaTypes[0],
+          );
         }
       })
       .catch((e) => {
-        if (active) { setError(errorText(e)); setBusy(false); }
+        if (active) {
+          setError(errorText(e));
+          setBusy(false);
+        }
       });
     return () => {
       active = false;
@@ -187,13 +194,54 @@ export function useDiscovery({
     setFilters({});
     setSearch("");
     setQuery("");
-    setType(capabilities.find(c => c.source === id)?.mediaTypes[0] || (id === "anilist" || id === "bangumi" ? "anime" : "movie"));
+    setType(
+      capabilities.find((c) => c.source === id)?.mediaTypes[0] ||
+        (id === "anilist" || id === "bangumi" ? "anime" : "movie"),
+    );
   }
   const mediaTypes =
     capability?.mediaTypes.filter((t) => t !== "person") ||
     (source === "anilist" || source === "bangumi"
       ? ["anime"]
       : ["movie", "tv"]);
-  
-return {source,setSource,chart,setChart,type,setType,region,setRegion,monetization,setMonetization,platformQuery,setPlatformQuery,platform,setPlatform,platforms,platformError,query,setQuery,search,setSearch,history,setHistory,filters,setFilters,page,setPage,total,totalCapped,hasMore,items,busy,error,setRevision,capability,capabilities,chooseSource,mediaTypes};
+
+  return {
+    source,
+    setSource,
+    chart,
+    setChart,
+    type,
+    setType,
+    region,
+    setRegion,
+    monetization,
+    setMonetization,
+    platformQuery,
+    setPlatformQuery,
+    platform,
+    setPlatform,
+    platforms,
+    platformError,
+    query,
+    setQuery,
+    search,
+    setSearch,
+    history,
+    setHistory,
+    filters,
+    setFilters,
+    page,
+    setPage,
+    total,
+    totalCapped,
+    hasMore,
+    items,
+    busy,
+    error,
+    setRevision,
+    capability,
+    capabilities,
+    chooseSource,
+    mediaTypes,
+  };
 }

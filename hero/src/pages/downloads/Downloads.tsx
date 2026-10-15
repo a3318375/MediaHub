@@ -1,35 +1,40 @@
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Button,Card,Chip } from "@heroui/react";
+import { Button, Card, Chip } from "@heroui/react";
 
-import { Overlay } from '../../components/ui/Overlay';
+import { Overlay } from "../../components/ui/Overlay";
 
 import {
-downloadApi,
-is115ShareURL,
-type DownloadTask
+  downloadApi,
+  is115ShareURL,
+  type DownloadTask,
 } from "../../lib/download-api";
 
+import { Field, Notice, SelectField } from "../../components/ui/ManagementUI";
+
+import { Empty, errorText, time } from "../../components/media/MediaUI";
+
+import { DownloadDialog } from "../../components/downloads/DownloadDialog";
 import {
-Field,
-Notice,
-SelectField
-} from "../../components/ui/ManagementUI";
-
-import { Empty,errorText,time } from "../../components/media/MediaUI";
-
-import { DownloadDialog } from '../../components/downloads/DownloadDialog';
-import { save,service,type Download,type Session } from "../../lib/media-service";
-export { DownloadDialog } from '../../components/downloads/DownloadDialog';
+  save,
+  service,
+  type Download,
+  type Session,
+} from "../../lib/media-service";
+export { DownloadDialog } from "../../components/downloads/DownloadDialog";
 
 const states: Record<string, string> = {
   demo: "演示任务",
   queued: "排队中",
+  submitted: "115 等待中",
+  downloading: "下载中",
+  awaiting_files: "确认文件中",
+  unknown: "待核对",
   submitting: "提交中",
   running: "进行中",
   completed: "已完成",
   failed: "失败",
-  cancelled: "已取消",
+  cancelled: "已停止跟踪",
   waiting_credentials: "等待凭据",
   submission_unknown: "提交结果待核对",
   checking: "核对中",
@@ -50,6 +55,7 @@ export function Downloads({
   notify: (s: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
@@ -72,7 +78,10 @@ export function Downloads({
       } catch (e) {
         if (active) setError(errorText(e));
       } finally {
-        if (active && session.mode === "live") timer = setTimeout(load, 5000);
+        if (active) {
+          setLoading(false);
+          if (session.mode === "live") timer = setTimeout(load, 5000);
+        }
       }
     }
     void load();
@@ -135,9 +144,19 @@ export function Downloads({
           onChange={setFilter}
         />
       </div>
+      <p className="media-note">
+        显示最近 200 条任务。停止跟踪不会删除 115 任务或网盘文件；115
+        已接受的下载可能继续。
+      </p>
       <Notice error={error} />
       {!visible.length ? (
-        <Empty>还没有符合条件的任务。</Empty>
+        <Empty>
+          {loading
+            ? "正在读取任务…"
+            : error
+              ? "任务暂不可用，请检查后端服务。"
+              : "还没有符合条件的任务。"}
+        </Empty>
       ) : (
         <div className="resource-grid">
           {visible.map((t) => {
@@ -159,8 +178,23 @@ export function Downloads({
                 </h3>
                 <progress aria-label="下载进度" max="100" value={t.progress} />
                 <p>
-                  {Math.round(t.progress)}% · {time(t.createdAt)}
+                  {task.kind === "share_transfer" && task.state !== "completed"
+                    ? "转存确认中"
+                    : `${Math.round(t.progress)}%`}{" "}
+                  · {time(t.createdAt)}
                 </p>
+                <small>
+                  {task.references?.length || 0} 个来源 · 目录{" "}
+                  {task.directoryId || "自动分类"}
+                </small>
+                {!!task.artifacts?.length && (
+                  <details>
+                    <summary>{task.artifacts.length} 个文件</summary>
+                    {task.artifacts.map((f) => (
+                      <p key={f.id}>{f.name}</p>
+                    ))}
+                  </details>
+                )}
                 {task.speed > 0 && (
                   <small>{(task.speed / 1024 / 1024).toFixed(1)} MB/s</small>
                 )}

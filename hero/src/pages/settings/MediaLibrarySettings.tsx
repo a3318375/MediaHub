@@ -1,10 +1,19 @@
-import { Button,Card } from "@heroui/react";
-import { useEffect,useState } from "react";
-import { errorText,time } from "../../components/media/MediaUI";
-import { DirectoryField,Field,Notice } from "../../components/ui/ManagementUI";
+import { Button, Card } from "@heroui/react";
+import { useEffect, useState } from "react";
+import { errorText, time } from "../../components/media/MediaUI";
+import {
+  DirectoryField,
+  Field,
+  Notice,
+} from "../../components/ui/ManagementUI";
 import { directoryIdFromInput } from "../../lib/download-api";
-import { read,save,type Download,type Session } from "../../lib/media-service";
-import { organizeApi,type OrganizePlan } from "../../lib/organize-api";
+import {
+  read,
+  save,
+  type Download,
+  type Session,
+} from "../../lib/media-service";
+import { organizeApi, type OrganizePlan } from "../../lib/organize-api";
 import { Downloads } from "../downloads/Downloads";
 
 // Mirrors the active MediaLibrarySettings flow, not the retired OrganizePage.
@@ -141,7 +150,7 @@ export function MediaLibrarySettings({ session }: { session: Session }) {
           <p className="media-note">下载时自动创建动漫、电影等分类目录。</p>
           <DirectoryField
             session={session}
-            label="媒体库目录"
+            label="已整理目录"
             value={config.targetId}
             onChange={(v) => setConfig({ ...config, targetId: v })}
           />
@@ -155,7 +164,12 @@ export function MediaLibrarySettings({ session }: { session: Session }) {
             placeholder="例如 0 3 * * *"
           />
           <p className="media-note">
-            北京时间。填写有效 Cron 后启用定时整理；留空停用。
+            使用 5 段格式：分钟 小时 日 月 星期，按北京时间执行。例如 0 3 * * *
+            表示每天 03:00；*/30 * * * * 表示每 30
+            分钟。留空或填写错误不启用定时；有效表达式保存后自动启用。
+          </p>
+          <p className="media-note">
+            已保存的定时状态：{config.enabled ? "已启用" : "未启用"}
           </p>
           <Notice error={config.scheduleError} />
           <div className="management-actions">

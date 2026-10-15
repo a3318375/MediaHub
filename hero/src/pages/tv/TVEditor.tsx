@@ -1,14 +1,12 @@
-import { useState,type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
-import { Button,Input } from "@heroui/react";
+import { Button, Input } from "@heroui/react";
 
+import { Overlay } from "../../components/ui/Overlay";
 
+import { type TV, type TVDraft } from "../../lib/media-service";
 
-import { Overlay } from '../../components/ui/Overlay';
-
-import { type TV,type TVDraft } from "../../lib/media-service";
-
-import { errorText,FilterTabs } from "../../components/media/MediaUI";
+import { errorText, FilterTabs } from "../../components/media/MediaUI";
 
 export function TVEditor({
   value,
@@ -30,16 +28,10 @@ export function TVEditor({
       !draft.title.trim() ||
       !/^\d+$/.test(draft.tmdbId) ||
       !Number.isInteger(draft.season) ||
-      draft.season < 1
+      draft.season < 1 ||
+      draft.season > 100
     ) {
       setError("请填写标题、数字 TMDB ID 和有效季数");
-      return;
-    }
-    try {
-      if (draft.match) new RegExp(draft.match);
-      if (draft.exclude) new RegExp(draft.exclude);
-    } catch {
-      setError("资源匹配或排除正则无效");
       return;
     }
     const selected = channels
@@ -95,6 +87,7 @@ export function TVEditor({
               aria-label="季数"
               type="number"
               min="1"
+              max="100"
               value={String(draft.season)}
               onChange={(e) =>
                 setDraft({ ...draft, season: Number(e.target.value) })

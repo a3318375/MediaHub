@@ -1,17 +1,17 @@
-import { Button,Tabs } from "@heroui/react";
+import { Button, Tabs } from "@heroui/react";
 
-import { Clapperboard,Film,Heart,Plus,Search,Star } from "lucide-react";
+import { Clapperboard, Film, Heart, Plus, Search, Star } from "lucide-react";
 
-import { useEffect,useState,type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import type { MediaSummary } from "../../lib/media-contract";
 
-import { formatRegion,presentTitle } from "../../lib/media-presentation";
+import { formatRegion, presentTitle } from "../../lib/media-presentation";
 
-import { kindLabels } from '../../lib/formatters';
-import { image,readSession } from "../../lib/media-service";
-export type { API } from '../../lib/formatters';
-export { dateCN,errorText,kindLabels,time } from '../../lib/formatters';
+import { kindLabels } from "../../lib/formatters";
+import { image, readSession } from "../../lib/media-service";
+export type { API } from "../../lib/formatters";
+export { dateCN, errorText, kindLabels, time } from "../../lib/formatters";
 
 export function FilterTabs({
   label,
@@ -123,7 +123,13 @@ export function Poster({
                 media.year,
                 kindLabels[media.mediaType],
                 formatRegion(media.originCountries, media.region),
-                ({tmdb:"TMDB",douban:"豆瓣",bangumi:"Bangumi",anilist:"AniList",emby:"Emby"})[media.provider],
+                {
+                  tmdb: "TMDB",
+                  douban: "豆瓣",
+                  bangumi: "Bangumi",
+                  anilist: "AniList",
+                  emby: "Emby",
+                }[media.provider],
               ]
                 .filter(Boolean)
                 .join(" · ")}
@@ -260,7 +266,11 @@ export function PosterGrid({
           media={m}
           index={i}
           onOpen={() => open(m)}
-          onSearch={search ? () => search({...m, title: presentTitle(m).title}) : undefined}
+          onSearch={
+            search
+              ? () => search({ ...m, title: presentTitle(m).title })
+              : undefined
+          }
           onSubscribe={subscribe ? () => subscribe(m) : undefined}
           rank={ranking ? i + 1 : undefined}
           subscribed={subscribed.includes(m.sourceId)}

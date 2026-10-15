@@ -1,13 +1,13 @@
-import { useEffect,useRef,useState } from "react";
-import { errorText } from "../components/media/MediaUI";
+import { useEffect, useRef, useState } from "react";
 import {
-animeApi,
-emptyAnimeDraft,
-type AnimeDraft,
-type AnimePreview,
-type MikanGroup,
-type MikanItem
+  animeApi,
+  emptyAnimeDraft,
+  type AnimeDraft,
+  type AnimePreview,
+  type MikanGroup,
+  type MikanItem,
 } from "../lib/anime-api";
+import { errorText } from "../lib/formatters";
 export function useAnimeEditor() {
   const [step, setStep] = useState<"source" | "browse" | "match" | "edit">(
     "source",
@@ -51,7 +51,10 @@ export function useAnimeEditor() {
   }
   async function resolve(value: AnimeDraft) {
     await act(async () => {
-      const resolved = await animeApi.resolve(value, controller.current?.signal);
+      const resolved = await animeApi.resolve(
+        value,
+        controller.current?.signal,
+      );
       if (controller.current?.signal.aborted) return;
       setDraft(resolved);
       setMatchText(resolved.match.join("\n"));
@@ -61,22 +64,81 @@ export function useAnimeEditor() {
     });
   }
   async function browse(refresh = false) {
-    setStep("browse"); setSelected(null); setGroups([]);
+    setStep("browse");
+    setSelected(null);
+    setGroups([]);
     await act(async () => {
-      const r = await animeApi.catalog(query, season, refresh, controller.current?.signal, draft.source);
+      const r = await animeApi.catalog(
+        query,
+        season,
+        refresh,
+        controller.current?.signal,
+        draft.source,
+      );
       if (controller.current?.signal.aborted) return;
-      setCatalog(r.items); setSeasons(r.seasons); setCatalogPage(1);
-    });
-  }
-  
-  async function selectAnime(item: MikanItem) {
-    setSelected(item); setGroups([]);
-    await act(async () => {
-      const result = await animeApi.groups(item.id, controller.current?.signal, draft.source);
-      if (controller.current?.signal.aborted) return;
-      setGroups(result); setDraft(d => ({ ...d, title: item.title, poster: item.poster, mikanId: d.source === "mikan" ? item.id : "" }));
+      setCatalog(r.items);
+      setSeasons(r.seasons);
+      setCatalogPage(1);
     });
   }
 
-return {selectAnime,step,setStep,selectedGroup,setSelectedGroup,selectedRule,setSelectedRule,draft,setDraft,matchText,setMatchText,excludeText,setExcludeText,catalogPage,setCatalogPage,query,setQuery,season,setSeason,seasons,setSeasons,catalog,setCatalog,groups,setGroups,selected,setSelected,preview,setPreview,busy,error,controller,running,change,act,resolve,browse};
+  async function selectAnime(item: MikanItem) {
+    setSelected(item);
+    setGroups([]);
+    await act(async () => {
+      const result = await animeApi.groups(
+        item.id,
+        controller.current?.signal,
+        draft.source,
+      );
+      if (controller.current?.signal.aborted) return;
+      setGroups(result);
+      setDraft((d) => ({
+        ...d,
+        title: item.title,
+        poster: item.poster,
+        mikanId: d.source === "mikan" ? item.id : "",
+      }));
+    });
+  }
+
+  return {
+    selectAnime,
+    step,
+    setStep,
+    selectedGroup,
+    setSelectedGroup,
+    selectedRule,
+    setSelectedRule,
+    draft,
+    setDraft,
+    matchText,
+    setMatchText,
+    excludeText,
+    setExcludeText,
+    catalogPage,
+    setCatalogPage,
+    query,
+    setQuery,
+    season,
+    setSeason,
+    seasons,
+    setSeasons,
+    catalog,
+    setCatalog,
+    groups,
+    setGroups,
+    selected,
+    setSelected,
+    preview,
+    setPreview,
+    busy,
+    error,
+    controller,
+    running,
+    change,
+    act,
+    resolve,
+    browse,
+  };
 }

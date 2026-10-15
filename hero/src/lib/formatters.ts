@@ -1,8 +1,3 @@
-
-
-
-
-
 import { type service } from "./media-service";
 
 export type API = ReturnType<typeof service>;

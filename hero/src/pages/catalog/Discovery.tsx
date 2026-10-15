@@ -1,43 +1,39 @@
-import { useDiscovery } from '../../hooks/useDiscovery';
+import { useDiscovery } from "../../hooks/useDiscovery";
 
-import { Button,Card,Input,Tabs } from "@heroui/react";
+import { Button, Card, Input, Tabs } from "@heroui/react";
 
 import {
-Check,
-ChevronLeft,
-ChevronRight,
-Film,
-RefreshCw,
-Search,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Film,
+  RefreshCw,
+  Search,
 } from "lucide-react";
 
 import { image } from "../../lib/media-service";
 
 import {
-commonGenres,
-movieGenres,
-optionLabel,
-regionLabels,
-tvGenres,
+  commonGenres,
+  movieGenres,
+  optionLabel,
+  regionLabels,
+  tvGenres,
 } from "../../lib/discovery-labels";
 
-import {
-saveMediaSearchHistory
-} from "../../lib/resource-search";
+import { saveMediaSearchHistory } from "../../lib/resource-search";
 
-import { Field,SelectField } from "../../components/ui/ManagementUI";
+import { Field, SelectField } from "../../components/ui/ManagementUI";
 
-import type {
-MediaSummary
-} from "../../lib/media-contract";
+import type { MediaSummary } from "../../lib/media-contract";
 
 import {
-FilterTabs,
-kindLabels,
-PosterGrid,
-type API
+  FilterTabs,
+  kindLabels,
+  PosterGrid,
+  type API,
 } from "../../components/media/MediaUI";
-import { charts,sources } from "../../lib/catalog-options";
+import { charts, sources } from "../../lib/catalog-options";
 export { HomeRecommendations } from "../../components/media/HomeRecommendations";
 export { Detail } from "./MediaDetail";
 
@@ -58,8 +54,53 @@ export function Discovery({
   searchKeyword: (keyword: string) => void;
   subscribe: (m: MediaSummary) => void;
 }) {
- const { source,setSource,chart,setChart,type,setType,region,setRegion,monetization,setMonetization,platformQuery,setPlatformQuery,platform,setPlatform,platforms,platformError,query,setQuery,search,setSearch,history,setHistory,filters,setFilters,page,setPage,total,totalCapped,hasMore,items,busy,error,setRevision,capability,capabilities,chooseSource,mediaTypes } = useDiscovery({ranking,api,demo,open,search: searchResource,subscribe});
-return (
+  const {
+    source,
+    setSource,
+    chart,
+    setChart,
+    type,
+    setType,
+    region,
+    setRegion,
+    monetization,
+    setMonetization,
+    platformQuery,
+    setPlatformQuery,
+    platform,
+    setPlatform,
+    platforms,
+    platformError,
+    query,
+    setQuery,
+    search,
+    setSearch,
+    history,
+    setHistory,
+    filters,
+    setFilters,
+    page,
+    setPage,
+    total,
+    totalCapped,
+    hasMore,
+    items,
+    busy,
+    error,
+    setRevision,
+    capability,
+    capabilities,
+    chooseSource,
+    mediaTypes,
+  } = useDiscovery({
+    ranking,
+    api,
+    demo,
+    open,
+    search: searchResource,
+    subscribe,
+  });
+  return (
     <>
       {!ranking ? (
         <Tabs
@@ -71,7 +112,14 @@ return (
           <Tabs.ListContainer>
             <Tabs.List aria-label="影视探索来源">
               {sources.map(([id, label]) => (
-                <Tabs.Tab key={id} id={id} isDisabled={!demo && !capabilities.find(c => c.source === id)?.available}>
+                <Tabs.Tab
+                  key={id}
+                  id={id}
+                  isDisabled={
+                    !demo &&
+                    !capabilities.find((c) => c.source === id)?.available
+                  }
+                >
                   {label}
                   <Tabs.Indicator />
                 </Tabs.Tab>
@@ -103,7 +151,11 @@ return (
           ))}
           {ranking &&
             platforms
-              .filter((p) => /^(Netflix|奈飞|奈菲|Disney\+|Disney Plus|Amazon Prime Video|Prime Video|HBO Max|Max|HBO|Apple TV(?:\+| Plus)?|Crunchyroll|Hulu|Amazon Video|Paramount\+|Peacock(?: Premium)?)$/i.test(p.name))
+              .filter((p) =>
+                /^(Netflix|奈飞|奈菲|Disney\+|Disney Plus|Amazon Prime Video|Prime Video|HBO Max|Max|HBO|Apple TV(?:\+| Plus)?|Crunchyroll|Hulu|Amazon Video|Paramount\+|Peacock(?: Premium)?)$/i.test(
+                  p.name,
+                ),
+              )
               .slice(0, 10)
               .map((p) => (
                 <button
@@ -357,7 +409,8 @@ return (
               className="media-query"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!query.trim() || (!demo && !capability?.supportsSearch)) return;
+                if (!query.trim() || (!demo && !capability?.supportsSearch))
+                  return;
                 searchKeyword(query.trim());
                 if (query.trim())
                   setHistory(
@@ -377,12 +430,32 @@ return (
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
-              <Button type="submit" isDisabled={!demo && !capability?.supportsSearch}>
+              <Button
+                type="submit"
+                isDisabled={!demo && !capability?.supportsSearch}
+              >
                 <Search size={16} />
                 搜索
               </Button>
-              <Button variant="secondary" onPress={() => { setQuery(""); setSearch(""); setPage(1); }}>清空</Button>
-              <Button variant="secondary" onPress={() => { setFilters({}); setPage(1); }}>重置</Button>
+              <Button
+                variant="secondary"
+                onPress={() => {
+                  setQuery("");
+                  setSearch("");
+                  setPage(1);
+                }}
+              >
+                清空
+              </Button>
+              <Button
+                variant="secondary"
+                onPress={() => {
+                  setFilters({});
+                  setPage(1);
+                }}
+              >
+                重置
+              </Button>
             </form>
           </>
         )}
@@ -439,8 +512,29 @@ return (
           ranking={ranking && !(source === "bangumi" && chart === "airing")}
         />
       )}
-      {(source === "tmdb" || source === "streaming") && <p className="media-note">This product uses the TMDB API but is not endorsed or certified by TMDB.{source === "streaming" && <> 可观看性数据由 <a href="https://www.justwatch.com/" target="_blank" rel="noreferrer">JustWatch</a> 提供，片单按 TMDB 热度排序。</>}</p>}
-      {ranking && platformError && source !== "streaming" && <p className="media-note">平台入口暂不可用：{platformError}</p>}
+      {(source === "tmdb" || source === "streaming") && (
+        <p className="media-note">
+          This product uses the TMDB API but is not endorsed or certified by
+          TMDB.
+          {source === "streaming" && (
+            <>
+              {" "}
+              可观看性数据由{" "}
+              <a
+                href="https://www.justwatch.com/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                JustWatch
+              </a>{" "}
+              提供，片单按 TMDB 热度排序。
+            </>
+          )}
+        </p>
+      )}
+      {ranking && platformError && source !== "streaming" && (
+        <p className="media-note">平台入口暂不可用：{platformError}</p>
+      )}
       {!ranking && history.length > 0 && (
         <div className="search-history">
           <span>最近搜索</span>

@@ -1,8 +1,8 @@
 import type {
-MediaDetail,
-MediaPage,
-MediaProvidersResponse,
-MediaSummary,
+  MediaDetail,
+  MediaPage,
+  MediaProvidersResponse,
+  MediaSummary,
 } from "./media-contract";
 
 export type Session = { mode: "demo" | "live"; name: string; token?: string };
@@ -207,8 +207,17 @@ export function normalizeResources(
     total: typeof data.total === "number" ? data.total : 0,
     items: Array.isArray(data.items) ? data.items : [],
     linksByCloud:
-      data.linksByCloud && typeof data.linksByCloud === "object"
-        ? data.linksByCloud
+      data.linksByCloud &&
+      typeof data.linksByCloud === "object" &&
+      !Array.isArray(data.linksByCloud)
+        ? Object.fromEntries(
+            Object.entries(data.linksByCloud)
+              .filter(([, links]) => Array.isArray(links))
+              .map(([cloud, links]) => [
+                cloud,
+                links.filter((link) => link && typeof link.url === "string"),
+              ]),
+          )
         : {},
   };
 }

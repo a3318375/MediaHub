@@ -1,26 +1,27 @@
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Button,Card } from "@heroui/react";
-
-import { clearCache,read,request,save,type Session } from "../../lib/media-service";
+import { Button, Card } from "@heroui/react";
 
 import {
-settingsApi,
-type SettingValue
-} from "../../lib/settings-api";
+  clearCache,
+  read,
+  request,
+  save,
+  type Session,
+} from "../../lib/media-service";
 
+import { settingsApi, type SettingValue } from "../../lib/settings-api";
 
 import {
-normalizeResourceChannel,
-type ResourceSearchMeta,
+  normalizeResourceChannel,
+  type ResourceSearchMeta,
 } from "../../lib/resource-search";
 
-import { Field,Notice,Toggle } from "../../components/ui/ManagementUI";
+import { Field, Notice, Toggle } from "../../components/ui/ManagementUI";
 
-import { errorText,FilterTabs } from "../../components/media/MediaUI";
+import { errorText, FilterTabs } from "../../components/media/MediaUI";
 
 import { cloudLabels } from "../../lib/parity";
-
 
 export function ResourceSettings({ session }: { session: Session }) {
   const [meta, setMeta] = useState<ResourceSearchMeta | null>(null);

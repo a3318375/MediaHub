@@ -1,17 +1,4 @@
-
-
-
-import {
-type SettingsSection,
-type SettingValue
-} from "./settings-api";
-
-
-
-
-
-
-
+import { type SettingsSection, type SettingValue } from "./settings-api";
 
 type Schema = [string, string, SettingValue, "secret"?];
 

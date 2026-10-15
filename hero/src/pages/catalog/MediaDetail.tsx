@@ -1,21 +1,21 @@
-import { useEffect,useState } from "react";
-import { formatRegion,presentTitle } from "../../lib/media-presentation";
+import { useEffect, useState } from "react";
+import { formatRegion, presentTitle } from "../../lib/media-presentation";
 
-import { Button,Card,Chip } from "@heroui/react";
+import { Button, Card, Chip } from "@heroui/react";
 
-import { ChevronLeft,Film,Plus,Search } from "lucide-react";
+import { ChevronLeft, Film, Plus, Search } from "lucide-react";
 
 import { image } from "../../lib/media-service";
 
 import { SelectField } from "../../components/ui/ManagementUI";
 
-import type { MediaDetail,MediaSummary } from "../../lib/media-contract";
+import type { MediaDetail, MediaSummary } from "../../lib/media-contract";
 
 import {
-errorText,
-kindLabels,
-MediaImage,
-type API,
+  errorText,
+  kindLabels,
+  MediaImage,
+  type API,
 } from "../../components/media/MediaUI";
 
 export function Detail({
@@ -37,7 +37,9 @@ export function Detail({
   const [season, setSeason] = useState("1");
   useEffect(() => {
     let active = true;
-    setData(media); setBusy(true); setError("");
+    setData(media);
+    setBusy(true);
+    setError("");
     api
       .detail(media)
       .then((v) => {
@@ -60,7 +62,7 @@ export function Detail({
       active = false;
     };
   }, [api, media]);
-  const {title, subtitle} = presentTitle(data);
+  const { title, subtitle } = presentTitle(data);
   const region = formatRegion(data.originCountries, data.region);
   return (
     <section className="detail-page" aria-label={`${data.title}的作品详情`}>
@@ -76,7 +78,10 @@ export function Detail({
             alt=""
           />
         )}
-        <h1>{title}{data.year && <small> ({data.year})</small>}</h1>
+        <h1>
+          {title}
+          {data.year && <small> ({data.year})</small>}
+        </h1>
         <div className="media-detail">
           <div className="media-detail-poster">
             {image(data.posterPath) ? (
@@ -96,8 +101,10 @@ export function Detail({
               {region}
             </p>
             {data.tagline && <p>{data.tagline}</p>}
-            {data.provider === "anilist" && !!data.titles?.synonyms?.length && <p>别名：{data.titles.synonyms.slice(0,5).join("、")}</p>}
-          {data.externalIds?.imdb &&
+            {data.provider === "anilist" && !!data.titles?.synonyms?.length && (
+              <p>别名：{data.titles.synonyms.slice(0, 5).join("、")}</p>
+            )}
+            {data.externalIds?.imdb &&
               /^tt\d+$/.test(data.externalIds.imdb) && (
                 <a
                   href={`https://www.imdb.com/title/${data.externalIds.imdb}/`}

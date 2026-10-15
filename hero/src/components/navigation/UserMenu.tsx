@@ -1,9 +1,9 @@
 import { Button } from "@heroui/react";
-import { Bell,LogOut,Settings,UserRound } from "lucide-react";
+import { Bell, LogOut, Settings, UserRound } from "lucide-react";
 import { useState } from "react";
-import { request,type Session } from "../../lib/media-service";
+import { request, type Session } from "../../lib/media-service";
 import { errorText } from "../media/MediaUI";
-import { Overlay } from '../ui/Overlay';
+import { Overlay } from "../ui/Overlay";
 
 export function MediaUserMenu({
   session,

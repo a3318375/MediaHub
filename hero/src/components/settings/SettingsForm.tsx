@@ -1,24 +1,21 @@
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Button,Card } from "@heroui/react";
+import { Button, Card } from "@heroui/react";
 
-import { clearCache,read,save,type Session } from "../../lib/media-service";
+import { clearCache, read, save, type Session } from "../../lib/media-service";
 
 import {
-settingsApi,
-type SettingsSection,
-type SettingValue,
+  settingsApi,
+  type SettingsSection,
+  type SettingValue,
 } from "../../lib/settings-api";
 
-
-
-import { Field,Notice,SelectField,Toggle } from "../ui/ManagementUI";
+import { Field, Notice, SelectField, Toggle } from "../ui/ManagementUI";
 
 import { errorText } from "../media/MediaUI";
 
-
-import { schemas,sectionNames } from '../../lib/settings-schema';
-import { SecretField } from './SecretField';
+import { schemas, sectionNames } from "../../lib/settings-schema";
+import { SecretField } from "./SecretField";
 
 export function SettingsForm({
   sections,
@@ -166,11 +163,39 @@ export function SettingsForm({
                       checked={Boolean(values[name])}
                       onChange={(v) => update(name, v)}
                     />
+                  ) : name === "search.quality" ? (
+                    <SelectField
+                      key={name}
+                      label={label}
+                      value={String(values[name] ?? fallback)}
+                      options={[
+                        "优先 1080p，允许 2160p",
+                        "优先 2160p",
+                        "优先 1080p",
+                        "不限制",
+                      ].map((v) => [v, v])}
+                      onChange={(v) => update(name, v)}
+                    />
+                  ) : name === "search.excludeKeywords" ? (
+                    <label key={name} className="management-field">
+                      <span>{label}</span>
+                      <textarea
+                        rows={3}
+                        value={String(values[name] ?? fallback)}
+                        onChange={(e) => update(name, e.target.value)}
+                        placeholder="每行或用逗号填写关键词"
+                      />
+                    </label>
                   ) : (
                     <Field
                       key={name}
                       label={label}
-                      type={typeof fallback === "number" ? "number" : "text"}
+                      type={
+                        typeof fallback === "number" ||
+                        ["search.interval", "search.minSeeders"].includes(name)
+                          ? "number"
+                          : "text"
+                      }
                       value={String(values[name] ?? fallback)}
                       onChange={(v) =>
                         update(

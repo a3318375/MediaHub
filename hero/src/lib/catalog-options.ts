@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 export const sources = [
   ["tmdb", "TMDB"],
   ["douban", "豆瓣"],

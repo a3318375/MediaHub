@@ -1,33 +1,29 @@
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Button,Card,Chip } from "@heroui/react";
-
+import { Button, Card, Chip } from "@heroui/react";
 
 import {
-Field,
-Notice,
-SelectField,
-Toggle
+  Field,
+  Notice,
+  SelectField,
+  Toggle,
 } from "../../components/ui/ManagementUI";
 
-import { Empty,errorText,time } from "../../components/media/MediaUI";
+import { Empty, errorText, time } from "../../components/media/MediaUI";
 
-import { getLogs,type LogEntry } from "../../lib/logs-api";
-
-
+import { getLogs, type LogEntry } from "../../lib/logs-api";
 
 import { type Session } from "../../lib/media-service";
-
 
 export function Logs({ session }: { session: Session }) {
   const [level, setLevel] = useState("");
   const [source, setSource] = useState("");
   const [query, setQuery] = useState("");
-  const [limit, setLimit] = useState("200");
+  const [limit, setLimit] = useState("500");
   const [items, setItems] = useState<LogEntry[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [auto, setAuto] = useState(false);
+  const [auto, setAuto] = useState(true);
   const [revision, setRevision] = useState(0);
   useEffect(() => {
     let active = true;
@@ -57,13 +53,14 @@ export function Logs({ session }: { session: Session }) {
       active = false;
       clearTimeout(timer);
     };
-  }, [session, level, source, limit, revision, auto]);
+  }, [session, level, source, query, limit, revision, auto]);
   function exportLogs() {
     const blob = new Blob(
       [
-        items
-          .map((i) => `${i.time}\t${i.level}\t${i.source}\t${i.message}`)
-          .join("\n"),
+        "时间\t模块\t级别\t内容\n" +
+          items
+            .map((i) => `${i.time}\t${i.source}\t${i.level}\t${i.message}`)
+            .join("\n"),
       ],
       { type: "text/plain;charset=utf-8" },
     );
@@ -93,7 +90,20 @@ export function Logs({ session }: { session: Session }) {
             ]}
             onChange={setLevel}
           />
-          <Field label="模块来源" value={source} onChange={setSource} />
+          <SelectField
+            label="模块来源"
+            value={source}
+            onChange={setSource}
+            options={[
+              ["", "全部模块"],
+              ...[
+                ...new Set(items.map((i) => i.source)),
+                ...(source ? [source] : []),
+              ]
+                .filter((v, i, a) => a.indexOf(v) === i)
+                .map((v) => [v, v]),
+            ]}
+          />
           <Field label="关键词" value={query} onChange={setQuery} />
           <SelectField
             label="显示条数"

@@ -1,30 +1,13 @@
-import {
-useEffect,
-useRef,
-useState,
-type FormEvent
-} from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
-import {
-Button,
-Checkbox,
-Input
-} from "@heroui/react";
+import { Button, Checkbox, Input } from "@heroui/react";
 
-import {
-ArrowRight,
-Eye,
-EyeOff
-} from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 
-import {
-DEMO_EMAIL,
-DEMO_PASSWORD
-} from "./data";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "./data";
 
 import { SalesChart } from "./charts";
-import { Avatar,Growth } from './dashboard-template';
-
+import { Avatar, Growth } from "./DemoPrimitives";
 
 export function Login({
   onLogin,

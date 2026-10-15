@@ -1,10 +1,15 @@
-import { Button,Card } from "@heroui/react";
+import { Button, Card } from "@heroui/react";
 import { Film } from "lucide-react";
-import { useEffect,useState } from "react";
-import { Empty,FilterTabs,errorText,time } from "../../components/media/MediaUI";
+import { useEffect, useState } from "react";
+import {
+  Empty,
+  FilterTabs,
+  errorText,
+  time,
+} from "../../components/media/MediaUI";
 import { Notice } from "../../components/ui/ManagementUI";
 import type { MediaSummary } from "../../lib/media-contract";
-import { request,type Session } from "../../lib/media-service";
+import { request, type Session } from "../../lib/media-service";
 type Item = {
   id: string;
   title: string;
@@ -197,28 +202,33 @@ export function Emby({
               </Button>
             )}
           </div>
-          <div className="management-checks">
+          <div className="emby-library-grid">
             {data.libraries
               .filter((l) => site === "all" || l.siteId === site)
               .map((l) => (
                 <Button
                   key={l.id}
+                  className="emby-library-card"
+                  aria-pressed={library === l.id}
                   variant={library === l.id ? "primary" : "secondary"}
                   onPress={() => setLibrary(library === l.id ? "" : l.id)}
                 >
-                  {l.title} · {l.count}
+                  <EmbyArtwork id={l.id} title={l.title} session={session} />
+                  <span>
+                    {l.title} · {l.count}
+                  </span>
                 </Button>
               ))}
           </div>
           {[
-            ["继续观看", visible(data.continueWatching)],
-            ["最新入库", visible(data.recentlyAdded)],
+            ["最近入库", visible(data.recentlyAdded)],
+            ["继续播放", visible(data.continueWatching)],
           ].map(([title, items]) => (
             <section className="management-stack" key={String(title)}>
               <h2>{String(title)}</h2>
               {(items as Item[]).length ? (
                 <div className="poster-grid">
-                  {(items as Item[]).map((i) => (
+                  {(items as Item[]).slice(0, 10).map((i) => (
                     <button
                       key={i.id}
                       className="poster-card"

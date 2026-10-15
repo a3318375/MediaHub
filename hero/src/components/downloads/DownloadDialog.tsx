@@ -2,28 +2,22 @@ import { useState } from "react";
 
 import { Button } from "@heroui/react";
 
-import { Overlay } from '../ui/Overlay';
+import { Overlay } from "../ui/Overlay";
 
 import {
-directoryIdFromInput,
-downloadApi,
-is115ShareURL,
-type DownloadFile,
-type DownloadMediaContext,
-type DownloadReference
+  directoryIdFromInput,
+  downloadApi,
+  is115ShareURL,
+  type DownloadFile,
+  type DownloadMediaContext,
+  type DownloadReference,
 } from "../../lib/download-api";
 
-import {
-DirectoryField,
-Field,
-Notice,
-Toggle
-} from "../ui/ManagementUI";
+import { DirectoryField, Field, Notice, Toggle } from "../ui/ManagementUI";
 
-import { Empty,errorText } from "../media/MediaUI";
+import { Empty, errorText } from "../media/MediaUI";
 
-import { type Download,type Session } from "../../lib/media-service";
-
+import { type Download, type Session } from "../../lib/media-service";
 
 export function DownloadDialog({
   url,
@@ -135,6 +129,10 @@ export function DownloadDialog({
             {session.mode === "demo"
               ? "仅创建本地演示任务，不会下载。"
               : "确认后提交到已配置的 115 账号。目标目录留空时按媒体库配置自动分类。"}
+          </p>
+          <p className="media-note">
+            显示最近 200 条任务。停止跟踪不会删除 115 任务或网盘文件；115
+            已接受的下载可能继续。
           </p>
           <Notice error={error} />
           <DirectoryField

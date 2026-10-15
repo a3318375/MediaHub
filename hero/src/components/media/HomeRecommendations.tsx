@@ -1,21 +1,8 @@
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 
+import type { MediaSummary } from "../../lib/media-contract";
 
-
-
-
-
-
-import type {
-MediaSummary
-} from "../../lib/media-contract";
-
-import {
-errorText,
-PosterGrid,
-type API
-} from "./MediaUI";
-
+import { errorText, PosterGrid, type API } from "./MediaUI";
 
 export function HomeRecommendations({
   api,

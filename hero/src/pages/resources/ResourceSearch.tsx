@@ -1,30 +1,18 @@
-import { Button,Card,Chip,Input } from "@heroui/react";
+import { Button, Card, Chip, Input } from "@heroui/react";
 import {
-Copy,
-Download as DownloadIcon,
-RefreshCw,
-Search,
+  Copy,
+  Download as DownloadIcon,
+  RefreshCw,
+  Search,
 } from "lucide-react";
-import {
-Empty,
-FilterTabs,
-type API
-} from "../../components/media/MediaUI";
+import { Empty, FilterTabs, type API } from "../../components/media/MediaUI";
 import { resourceHealthKey } from "../../hooks/useResourceHealth";
-import { useResourceSearch } from '../../hooks/useResourceSearch';
-import {
-is115ShareURL
-} from "../../lib/download-api";
+import { useResourceSearch } from "../../hooks/useResourceSearch";
+import { is115ShareURL } from "../../lib/download-api";
 import type { MediaSummary } from "../../lib/media-contract";
-import {
-safeURL,
-type Download,
-type Session
-} from "../../lib/media-service";
+import { safeURL, type Download, type Session } from "../../lib/media-service";
 import { cloudLabels } from "../../lib/parity";
-import {
-RESOURCE_SEARCH_HISTORY_KEY
-} from "../../lib/resource-search";
+import { RESOURCE_SEARCH_HISTORY_KEY } from "../../lib/resource-search";
 export function ResourceSearch({
   api,
   session,
@@ -42,8 +30,38 @@ export function ResourceSearch({
   media?: MediaSummary | null;
   back?: () => void;
 }) {
- const { query,setQuery,submitted,result,cloud,setCloud,error,busy,history,setHistory,updating,health,checking,downloading,mediaHistory,setMediaHistory,search,links,transfer,copy,check } = useResourceSearch({api,session,initialQuery,notify,onDownloaded,media,back});
-return (
+  const {
+    query,
+    setQuery,
+    submitted,
+    result,
+    cloud,
+    setCloud,
+    error,
+    busy,
+    history,
+    setHistory,
+    updating,
+    health,
+    checking,
+    downloading,
+    mediaHistory,
+    setMediaHistory,
+    search,
+    links,
+    transfer,
+    copy,
+    check,
+  } = useResourceSearch({
+    api,
+    session,
+    initialQuery,
+    notify,
+    onDownloaded,
+    media,
+    back,
+  });
+  return (
     <>
       {back && (
         <Button variant="ghost" onPress={back}>
@@ -206,7 +224,8 @@ return (
                         unsupported: "暂不支持",
                         uncertain: "待确认",
                       } as Record<string, string>
-                    )[health[resourceHealthKey(r)].state] || health[resourceHealthKey(r)].state}{" "}
+                    )[health[resourceHealthKey(r)].state] ||
+                      health[resourceHealthKey(r)].state}{" "}
                     · {health[resourceHealthKey(r)].summary}
                   </p>
                 )}

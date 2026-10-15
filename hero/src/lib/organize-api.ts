@@ -1,5 +1,5 @@
 import { getAccessToken } from "./auth-api";
-import type { DownloadFile,DownloadMediaContext } from "./download-api";
+import type { DownloadFile, DownloadMediaContext } from "./download-api";
 
 export type OrganizeRule = {
   id: string;

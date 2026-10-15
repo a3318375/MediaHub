@@ -1,20 +1,12 @@
 import { useState } from "react";
 
-import { Button,Input } from "@heroui/react";
+import { Button, Input } from "@heroui/react";
 
-
-import {
-settingsApi,
-type SettingsSection
-} from "../../lib/settings-api";
-
-
+import { settingsApi, type SettingsSection } from "../../lib/settings-api";
 
 import { Notice } from "../ui/ManagementUI";
 
 import { errorText } from "../media/MediaUI";
-
-
 
 export function SecretField({
   section,

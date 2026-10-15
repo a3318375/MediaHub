@@ -4,19 +4,15 @@ import { Card } from "@heroui/react";
 
 import { type Session } from "../../lib/media-service";
 
-
-
-
-
 import { FilterTabs } from "../../components/media/MediaUI";
 
 import { settingsTabs } from "../../lib/parity";
 
-import { SettingsForm } from '../../components/settings/SettingsForm';
-import { AccountSettings } from './AccountSettings';
-import { APIKeys } from './APIKeys';
+import { SettingsForm } from "../../components/settings/SettingsForm";
+import { AccountSettings } from "./AccountSettings";
+import { APIKeys } from "./APIKeys";
 import { MediaLibrarySettings } from "./MediaLibrarySettings";
-import { ResourceSettings } from './ResourceSettings';
+import { ResourceSettings } from "./ResourceSettings";
 
 export function ServerSettings({
   session,
