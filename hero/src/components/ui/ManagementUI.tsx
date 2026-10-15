@@ -1,10 +1,10 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { Button, Input } from "@heroui/react";
-import { Folder, ChevronLeft } from "lucide-react";
-import { Overlay } from "./App";
-import { errorText, Empty } from "./MediaUI";
-import { downloadApi, type DownloadFile } from "./lib/download-api";
-import type { Session } from "./media-service";
+import { Button,Input } from "@heroui/react";
+import { ChevronLeft,Folder } from "lucide-react";
+import { useEffect,useState,type ReactNode } from "react";
+import { downloadApi,type DownloadFile } from "../../lib/download-api";
+import type { Session } from "../../lib/media-service";
+import { Empty,errorText } from "../media/MediaUI";
+import { Overlay } from './Overlay';
 
 export function Field({
   label,

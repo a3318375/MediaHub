@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { salesData, trafficOrganic, trafficPaid, monthLabels } from "./data";
+import { monthLabels,salesData,trafficOrganic,trafficPaid } from "./data";
 
 export function SalesChart({ factor = 1 }: { factor?: number }) {
   const [hover, setHover] = useState<number | null>(null);

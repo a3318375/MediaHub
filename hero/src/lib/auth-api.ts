@@ -1,4 +1,4 @@
-import { readSession } from "../media-service";
+import { readSession } from "./media-service";
 
 // All migrated adapters share the HeroUI session; never use the old frontend's token.
 export function getAccessToken() {

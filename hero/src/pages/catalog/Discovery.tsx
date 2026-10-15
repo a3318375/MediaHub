@@ -1,107 +1,49 @@
-import { useEffect, useState } from "react";
-import { Button, Card, Chip, Input, Tabs } from "@heroui/react";
-import {
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Film,
-  Plus,
-  RefreshCw,
-  Search,
-} from "lucide-react";
-import { image, type Platform } from "./media-service";
-import {
-  optionLabel,
-  regionLabels,
-  commonGenres,
-  movieGenres,
-  tvGenres,
-} from "./discovery-labels";
-import {
-  saveMediaSearchHistory,
-  readMediaSearchHistory,
-} from "./lib/resource-search";
-import { Field, SelectField } from "./ManagementUI";
-import type {
-  MediaSummary,
-  MediaDetail,
-  ProviderCapabilities,
-} from "./media-contract";
-import {
-  errorText,
-  FilterTabs,
-  PosterGrid,
-  MediaImage,
-  kindLabels,
-  type API,
-} from "./MediaUI";
-const sources = [
-  ["tmdb", "TMDB"],
-  ["douban", "豆瓣"],
-  ["anilist", "AniList"],
-  ["bangumi", "Bangumi"],
-];
-const charts: Record<string, string[][]> = {
-  tmdb: [
-    ["movie_day", "电影 · 今日趋势"],
-    ["tv_day", "剧集 · 今日趋势"],
-    ["movie_week", "电影 · 本周趋势"],
-    ["tv_week", "剧集 · 本周趋势"],
-    ["movie_popular", "热门电影"],
-    ["tv_popular", "热门剧集"],
-    ["movie_top", "高分电影"],
-    ["tv_top", "高分剧集"],
-    ["movie_now", "正在上映"],
-    ["movie_upcoming", "即将上映"],
-    ["tv_airing", "今日播出"],
-    ["tv_on_air", "近期播出"],
-  ],
-  douban: [
-    ["movie_top250", "电影 Top 250"],
-    ["tv_hot", "热门剧集"],
-  ],
-  anilist: [
-    ["popularity", "人气动画"],
-    ["trending", "趋势动画"],
-    ["score", "高分动画"],
-  ],
-  bangumi: [
-    ["rank", "动画排名"],
-    ["airing", "今日放送"],
-  ],
-};
+import { useEffect,useState } from "react";
 
-export function HomeRecommendations({
-  api,
-  open,
-}: {
-  api: API;
-  open: (m: MediaSummary) => void;
-}) {
-  const [items, setItems] = useState<MediaSummary[]>([]);
-  const [error, setError] = useState("");
-  useEffect(() => {
-    let active = true;
-    api
-      .ranking("tmdb", "movie_day")
-      .then((v) => {
-        if (active) setItems(v.slice(0, 6));
-      })
-      .catch((e) => {
-        if (active) setError(errorText(e));
-      });
-    return () => {
-      active = false;
-    };
-  }, [api]);
-  return error ? (
-    <p role="alert" className="media-error">
-      {error}
-    </p>
-  ) : (
-    <PosterGrid items={items} open={open} />
-  );
-}
+import { Button,Card,Input,Tabs } from "@heroui/react";
+
+import {
+Check,
+ChevronLeft,
+ChevronRight,
+Film,
+RefreshCw,
+Search
+} from "lucide-react";
+
+import { image,type Platform } from "../../lib/media-service";
+
+import {
+commonGenres,
+movieGenres,
+optionLabel,
+regionLabels,
+tvGenres,
+} from "../../lib/discovery-labels";
+
+import {
+readMediaSearchHistory,
+saveMediaSearchHistory,
+} from "../../lib/resource-search";
+
+import { Field,SelectField } from "../../components/ui/ManagementUI";
+
+import type {
+MediaSummary,
+ProviderCapabilities
+} from "../../lib/media-contract";
+
+import {
+errorText,
+FilterTabs,
+kindLabels,
+PosterGrid,
+type API
+} from "../../components/media/MediaUI";
+import { charts,sources } from '../../lib/catalog-options';
+export { HomeRecommendations } from '../../components/media/HomeRecommendations';
+export { Detail } from './MediaDetail';
+
 
 export function Discovery({
   ranking,
@@ -676,171 +618,5 @@ export function Discovery({
         </div>
       )}
     </>
-  );
-}
-
-export function Detail({
-  media,
-  api,
-  close,
-  search,
-  subscribe,
-}: {
-  media: MediaSummary;
-  api: API;
-  close: () => void;
-  search: (q: string) => void;
-  subscribe: (m: MediaSummary, season: number) => void;
-}) {
-  const [data, setData] = useState<MediaDetail>(media);
-  const [busy, setBusy] = useState(true);
-  const [error, setError] = useState("");
-  const [season, setSeason] = useState("1");
-  useEffect(() => {
-    let active = true;
-    api
-      .detail(media)
-      .then((v) => {
-        if (active) {
-          setData(v);
-          setSeason(
-            String(
-              v.seasons?.find((s) => s.seasonNumber > 0)?.seasonNumber || 1,
-            ),
-          );
-        }
-      })
-      .catch((e) => {
-        if (active) setError(errorText(e));
-      })
-      .finally(() => {
-        if (active) setBusy(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [api, media]);
-  return (
-    <section className="detail-page" aria-label={`${data.title}的作品详情`}>
-      <Button variant="ghost" onPress={close}>
-        <ChevronLeft size={16} />
-        返回列表
-      </Button>
-      <h1>{data.title}</h1>
-      <div className="management-actions">
-        <Button variant="secondary" onPress={() => search(data.title)}>
-          <Search size={15} />
-          搜索资源
-        </Button>
-        {(data.source === "tmdb" || data.externalIds?.tmdb) &&
-          data.mediaType === "tv" && (
-            <Button
-              onPress={() =>
-                subscribe(
-                  {
-                    ...data,
-                    source: "tmdb",
-                    provider: "tmdb",
-                    sourceId: data.externalIds?.tmdb || data.sourceId,
-                    providerId: data.externalIds?.tmdb || data.providerId,
-                  },
-                  Number(season),
-                )
-              }
-            >
-              <Plus size={15} />
-              订阅此剧
-            </Button>
-          )}
-      </div>
-      <div className="media-detail">
-        <div className="media-detail-poster">
-          {image(data.posterPath) ? (
-            <MediaImage src={image(data.posterPath)!} alt={data.title} />
-          ) : (
-            <div className="poster-placeholder">{data.title}</div>
-          )}
-        </div>
-        <div>
-          <p>{data.originalTitle}</p>
-          <p>
-            {data.year} · {data.genres.join(" / ")}
-          </p>
-          <p className="media-note">
-            {data.status}{" "}
-            {data.runtimeMinutes ? `· ${data.runtimeMinutes} 分钟` : ""}{" "}
-            {data.originCountries?.join(" / ") || data.region || ""}
-          </p>
-          {data.tagline && <p>{data.tagline}</p>}
-          {data.externalIds?.imdb && /^tt\d+$/.test(data.externalIds.imdb) && (
-            <a
-              href={`https://www.imdb.com/title/${data.externalIds.imdb}/`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              查看 IMDb 条目
-            </a>
-          )}
-          <div className="media-ratings">
-            {data.ratings.map((r) => (
-              <Chip key={r.source} variant="soft">
-                {r.source.toUpperCase()} · {r.value}
-              </Chip>
-            ))}
-          </div>
-          <p>{busy ? "正在加载详情…" : data.overview || "暂无简介"}</p>
-          {data.credits?.length ? (
-            <p className="media-note">
-              演职员：
-              {data.credits
-                .slice(0, 8)
-                .map((c) => `${c.name}（${c.role}）`)
-                .join("、")}
-            </p>
-          ) : null}
-          {data.seasons?.length ? (
-            <SelectField
-              label="订阅季"
-              value={season}
-              options={data.seasons
-                .filter((s) => s.seasonNumber > 0)
-                .map((s) => [
-                  String(s.seasonNumber),
-                  `${s.name || `第 ${s.seasonNumber} 季`}${s.episodeCount ? ` · ${s.episodeCount} 集` : ""}`,
-                ])}
-              onChange={setSeason}
-            />
-          ) : null}
-          {error && (
-            <p role="alert" className="media-error">
-              {error}
-            </p>
-          )}
-        </div>
-      </div>
-      {!!data.credits?.length && (
-        <section className="detail-credits">
-          <h2>演职员</h2>
-          <div>
-            {data.credits.slice(0, 24).map((credit, index) => (
-              <article key={`${credit.name}-${index}`}>
-                {credit.profilePath ? (
-                  <MediaImage
-                    src={image(credit.profilePath)!}
-                    alt={credit.name}
-                  />
-                ) : (
-                  <div className="credit-placeholder">
-                    <Film size={24} />
-                  </div>
-                )}
-                <strong>{credit.name}</strong>
-                <small>{credit.role}</small>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-    </section>
   );
 }

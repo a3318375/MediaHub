@@ -5,7 +5,7 @@ import ts from "typescript";
 
 // Compile only the adapter into memory; no browser or running backend is needed.
 const source = await readFile(
-  new URL("../src/media-service.ts", import.meta.url),
+  new URL("../src/lib/media-service.ts", import.meta.url),
   "utf8",
 );
 const compiled = ts.transpileModule(source, {

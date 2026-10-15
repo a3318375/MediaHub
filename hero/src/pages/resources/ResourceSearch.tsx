@@ -1,31 +1,31 @@
-import { useEffect, useRef, useState } from "react";
-import { Button, Card, Chip, Input } from "@heroui/react";
+import { Button,Card,Chip,Input } from "@heroui/react";
 import {
-  Copy,
-  Download as DownloadIcon,
-  RefreshCw,
-  Search,
+Copy,
+Download as DownloadIcon,
+RefreshCw,
+Search,
 } from "lucide-react";
-import { DownloadDialog } from "./MediaDownloads";
-import { mediaContextFromRecord, is115ShareURL } from "./lib/download-api";
+import { useEffect,useRef,useState } from "react";
+import { Empty,errorText,FilterTabs,type API } from "../../components/media/MediaUI";
+import { is115ShareURL,mediaContextFromRecord } from "../../lib/download-api";
+import type { MediaSummary } from "../../lib/media-contract";
 import {
-  RESOURCE_SEARCH_CONFIG_CHANGED,
-  RESOURCE_SEARCH_HISTORY_KEY,
-  readResourceSearchHistory,
-  saveResourceSearchHistory,
-  type ResourceSearchMeta,
-} from "./lib/resource-search";
-import type { MediaSummary } from "./media-contract";
+request,
+safeURL,
+type Download,
+type Resource,
+type Resources,
+type Session,
+} from "../../lib/media-service";
+import { cloudLabels } from "../../lib/parity";
 import {
-  request,
-  safeURL,
-  type Download,
-  type Resource,
-  type Resources,
-  type Session,
-} from "./media-service";
-import { errorText, FilterTabs, Empty, type API } from "./MediaUI";
-import { cloudLabels } from "./parity";
+readResourceSearchHistory,
+RESOURCE_SEARCH_CONFIG_CHANGED,
+RESOURCE_SEARCH_HISTORY_KEY,
+saveResourceSearchHistory,
+type ResourceSearchMeta,
+} from "../../lib/resource-search";
+import { DownloadDialog } from "../downloads/Downloads";
 export function ResourceSearch({
   api,
   session,

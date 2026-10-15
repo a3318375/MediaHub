@@ -1,73 +1,92 @@
 import {
-  lazy,
-  Suspense,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type FormEvent,
+lazy,
+Suspense,
+useEffect,
+useMemo,
+useRef,
+useState
 } from "react";
-import { Button, Card, Chip, Input } from "@heroui/react";
+
+import { Button,Card,Chip } from "@heroui/react";
+
 import {
-  CalendarDays,
-  Check,
-  ChevronRight,
-  Film,
-  LogOut,
-  Menu,
-  Moon,
-  Plus,
-  Search,
-  Settings,
-  Sun,
-  Telescope,
-  Trophy,
-  Tv,
-  X,
-  Clapperboard,
-  ScrollText,
-  Library,
-  RefreshCw,
+CalendarDays,
+Check,
+ChevronRight,
+Clapperboard,
+Film,
+Library,
+LogOut,
+Menu,
+Moon,
+Plus,
+RefreshCw,
+ScrollText,
+Search,
+Settings,
+Sun,
+Telescope,
+Trophy,
+Tv,
+X,
 } from "lucide-react";
-import { MediaUserMenu } from "./MediaUserMenu";
-import { HeaderSearch } from "./MediaHeaderSearch";
-import { navigationItems, resolvePage } from "./parity";
-import { Login } from "./App";
+
+import { MediaUserMenu } from "../components/navigation/UserMenu";
+
+import { HeaderSearch } from "../components/navigation/HeaderSearch";
+
+import { navigationItems,resolvePage } from "../lib/parity";
+
+import { Login } from "../mocks/dashboard-template";
+
 import {
-  ApiError,
-  SESSION,
-  clearCache,
-  read,
-  readSession,
-  request,
-  save,
-  service,
-  type Download,
-  type Session,
-  type TV,
-  type TVDraft,
-} from "./media-service";
-import type { MediaSummary } from "./media-contract";
-import { errorText, dateCN, Empty } from "./MediaUI";
-import { HomeRecommendations, Discovery, Detail } from "./MediaCatalog";
-import { TVEditor, TVList, Calendar } from "./MediaTV";
-import { ResourceSearch } from "./MediaResources";
-import { Downloads, DownloadDialog } from "./MediaDownloads";
+ApiError,
+clearCache,
+read,
+readSession,
+request,
+save,
+service,
+SESSION,
+type Download,
+type Session,
+type TV,
+type TVDraft,
+} from "../lib/media-service";
+
+import type { MediaSummary } from "../lib/media-contract";
+
+import { dateCN,Empty,errorText } from "../components/media/MediaUI";
+
+import { Detail,Discovery,HomeRecommendations } from "../pages/catalog/Discovery";
+
+import { Calendar,TVEditor,TVList } from "../pages/tv/TVSubscriptions";
+
+import { ResourceSearch } from "../pages/resources/ResourceSearch";
+
+import { LiveLogin } from '../pages/auth/LiveLogin';
+import { DownloadDialog,Downloads } from "../pages/downloads/Downloads";
+
 const ServerSettings = lazy(() =>
-  import("./MediaSettings").then((m) => ({ default: m.ServerSettings })),
+  import("../pages/settings/ServerSettings").then((m) => ({ default: m.ServerSettings })),
 );
+
 const AnimeSubscriptions = lazy(() =>
-  import("./MediaAnime").then((m) => ({ default: m.AnimeSubscriptions })),
+  import("../pages/anime/AnimeSubscriptions").then((m) => ({ default: m.AnimeSubscriptions })),
 );
+
 const Organize = lazy(() =>
-  import("./MediaTools").then((m) => ({ default: m.Organize })),
+  import("../pages/organize/Organize").then((m) => ({ default: m.Organize })),
 );
+
 const Logs = lazy(() =>
-  import("./MediaTools").then((m) => ({ default: m.Logs })),
+  import("../pages/organize/Organize").then((m) => ({ default: m.Logs })),
 );
+
 const Emby = lazy(() =>
-  import("./MediaEmby").then((m) => ({ default: m.Emby })),
+  import("../pages/emby/Emby").then((m) => ({ default: m.Emby })),
 );
+
 const navIcons = {
   emby: Library,
   search: Search,
@@ -78,156 +97,18 @@ const navIcons = {
   logs: ScrollText,
   settings: Settings,
 };
+
 const navigation = navigationItems.map(
   ([id, label, section]) => [id, label, navIcons[id], section] as const,
 );
+
 type Page =
   | (typeof navigationItems)[number][0]
   | "home"
   | "subscriptions"
   | "downloads"
   | "organize";
-function LiveLogin({
-  onLogin,
-  onDemo,
-}: {
-  onLogin: (s: Session, remember?: boolean) => void;
-  onDemo: () => void;
-}) {
-  const [account, setAccount] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [setup, setSetup] = useState<boolean | null>(null);
-  const [confirm, setConfirm] = useState("");
-  const [remember, setRemember] = useState(false);
-  const [revision, setRevision] = useState(0);
-  useEffect(() => {
-    let active = true;
-    setSetup(null);
-    setError("");
-    request<{ setupRequired: boolean }>("/api/auth/setup/status")
-      .then((r) => {
-        if (active) setSetup(r.setupRequired);
-      })
-      .catch((e) => {
-        if (active) setError(errorText(e));
-      });
-    return () => {
-      active = false;
-    };
-  }, [revision]);
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (setup === null) return;
-    if (setup && password !== confirm) {
-      setError("两次输入的密码不一致");
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      const r = await request<{
-        accessToken: string;
-        user: { name: string; account: string };
-      }>(setup ? "/api/auth/setup" : "/api/auth/login", null, "POST", {
-        account,
-        password,
-      });
-      onLogin(
-        {
-          mode: "live",
-          name: r.user.name || r.user.account,
-          token: r.accessToken,
-        },
-        remember,
-      );
-    } catch (e) {
-      setError(errorText(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <div className="service-login">
-      <Card className="service-login-card">
-        <img src="/favicon.svg" alt="" width="38" />
-        <h1>{setup ? "创建管理员账号" : "连接 MediaHub"}</h1>
-        <p>
-          {setup
-            ? "首次使用，创建你的管理员账号。"
-            : "使用 MediaHub 管理员账号登录。"}
-        </p>
-        <form onSubmit={submit}>
-          <label>
-            账号
-            <Input
-              aria-label="账号"
-              value={account}
-              onChange={(e) => setAccount(e.target.value)}
-              autoComplete="username"
-              required
-            />
-          </label>
-          <label>
-            密码
-            <Input
-              aria-label="密码"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-            />
-          </label>
-          {setup && (
-            <label>
-              确认密码
-              <Input
-                aria-label="确认密码"
-                type="password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                required
-              />
-            </label>
-          )}
-          <label className="management-toggle">
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-            />
-            记住登录状态
-          </label>
-          {setup === null && !error && (
-            <p role="status">正在检查服务初始化状态…</p>
-          )}
-          {setup === null && error && (
-            <Button
-              variant="secondary"
-              onPress={() => setRevision((n) => n + 1)}
-            >
-              重新连接
-            </Button>
-          )}
-          {error && (
-            <p role="alert" className="media-error">
-              {error}
-            </p>
-          )}
-          <Button type="submit" isDisabled={busy || setup === null}>
-            {busy ? "正在处理…" : setup ? "创建账号并登录" : "连接服务"}
-          </Button>
-          <Button variant="secondary" onPress={onDemo}>
-            返回独立演示
-          </Button>
-        </form>
-        <small>账号与数据由已连接的 MediaHub 服务管理。</small>
-      </Card>
-    </div>
-  );
-}
+
 
 export default function MediaApp() {
   const [session, setSession] = useState<Session | null>(readSession);

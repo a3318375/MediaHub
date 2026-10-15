@@ -1,8 +1,8 @@
 import type {
-  MediaDetail,
-  MediaPage,
-  MediaSummary,
-  MediaProvidersResponse,
+MediaDetail,
+MediaPage,
+MediaProvidersResponse,
+MediaSummary,
 } from "./media-contract";
 
 export type Session = { mode: "demo" | "live"; name: string; token?: string };

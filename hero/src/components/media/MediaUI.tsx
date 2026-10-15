@@ -1,8 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { Button, Tabs } from "@heroui/react";
-import { Clapperboard, Film, Star, Search, Heart, Plus } from "lucide-react";
-import { image, readSession, type service } from "./media-service";
-import type { MediaSummary } from "./media-contract";
+import { Button,Tabs } from "@heroui/react";
+import { Clapperboard,Film,Heart,Plus,Search,Star } from "lucide-react";
+import { useEffect,useState,type ReactNode } from "react";
+import type { MediaSummary } from "../../lib/media-contract";
+import { image,readSession,type service } from "../../lib/media-service";
 export type API = ReturnType<typeof service>;
 export const kindLabels: Record<string, string> = {
   movie: "电影",

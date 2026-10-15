@@ -1,5 +1,5 @@
-import { RESOURCE_SEARCH_CONFIG_CHANGED } from "./resource-search";
 import { getAccessToken } from "./auth-api";
+import { RESOURCE_SEARCH_CONFIG_CHANGED } from "./resource-search";
 
 export type SettingValue = string | boolean | number | string[];
 export type SettingsSection =

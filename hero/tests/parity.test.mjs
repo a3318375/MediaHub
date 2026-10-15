@@ -13,7 +13,7 @@ async function load(path) {
   );
 }
 const { navigationItems, settingsTabs, resolvePage } =
-  await load("../src/parity.ts");
+  await load("../src/lib/parity.ts");
 
 test("HeroUI navigation follows the current shadcn menu, including removed entries", async () => {
   const original = await readFile(

@@ -1,5 +1,5 @@
-import { useId, useState } from "react";
-import { navigationItems } from "./parity";
+import { useId,useState } from "react";
+import { navigationItems } from "../../lib/parity";
 
 export function HeaderSearch({
   navigate,
