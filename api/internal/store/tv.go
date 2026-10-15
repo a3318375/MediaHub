@@ -26,6 +26,7 @@ func (s *Store) ListTV() ([]tv.Subscription, error) {
 		if err = json.Unmarshal(data, &v); err != nil {
 			return nil, err
 		}
+		v.Source = tv.SourceOf(v.Draft)
 		out = append(out, v)
 	}
 	return out, rows.Err()
@@ -42,6 +43,7 @@ func (s *Store) GetTV(id string) (tv.Subscription, error) {
 		return v, err
 	}
 	err = json.Unmarshal(data, &v)
+	v.Source = tv.SourceOf(v.Draft)
 	return v, err
 }
 
@@ -90,6 +92,7 @@ func (s *Store) SaveTVRefresh(v tv.Subscription) (tv.Subscription, error) {
 		return current, nil
 	}
 	v.Draft = current.Draft
+	v.Source = tv.SourceOf(v.Draft)
 	data, err := json.Marshal(v)
 	if err != nil {
 		return v, err
@@ -125,12 +128,13 @@ func (s *Store) UpdateTV(id string, d tv.Draft) (tv.Subscription, error) {
 	}
 	old, _ := json.Marshal(v.Rules)
 	updated, _ := json.Marshal(d.Rules)
-	if string(old) != string(updated) || d.Title != v.Title {
+	if string(old) != string(updated) || d.Title != v.Title || tv.SourceOf(d) != tv.SourceOf(v.Draft) {
 		v.Resources = []tv.Candidate{}
 	}
 	v.Draft = d
 	v.Revision++
 	v.NextCheckAt = ""
+	v.LastCheckedAt = ""
 	data, err := json.Marshal(v)
 	if err != nil {
 		return v, err

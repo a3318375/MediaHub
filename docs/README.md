@@ -1,5 +1,6 @@
 # 项目文档
 
+- [电视剧订阅来源与补查调度（当前实现）](api/tv-subscription-scheduling.md)
 - [电视剧两类订阅与 TG 正则分析](research/tv-subscription-sources.md)
 - [后端评审与本轮修复](api/backend-review-2026-10-15.md)
 - [榜单来源、调用条件与需求分析](research/ranking-sources.md)

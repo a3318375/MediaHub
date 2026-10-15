@@ -10,6 +10,9 @@ import (
 )
 
 func (b *Bootstrap) SearchTV(ctx context.Context, d tv.Draft) ([]tv.Candidate, error) {
+	if tv.SourceOf(d) != "pansou" {
+		return nil, fmt.Errorf("TG 订阅不能调用 PanSou")
+	}
 	selected, err := b.ReadSearchSettings()
 	if err != nil {
 		return nil, err
@@ -17,20 +20,14 @@ func (b *Bootstrap) SearchTV(ctx context.Context, d tv.Draft) ([]tv.Candidate, e
 	channels := selected.Channels
 	plugins := selected.Plugins
 	source := "all"
-	if len(d.Channels) > 0 {
-		channels = d.Channels
-		plugins = []string{}
+	if len(channels) == 0 && len(plugins) == 0 {
+		return nil, fmt.Errorf("请在全局设置中启用 PanSou 搜索来源")
+	}
+	if len(channels) == 0 {
+		source = "plugin"
+	}
+	if len(plugins) == 0 {
 		source = "tg"
-	} else {
-		if len(channels) == 0 && len(plugins) == 0 {
-			return nil, fmt.Errorf("请在全局设置中启用 PanSou 搜索来源")
-		}
-		if len(channels) == 0 {
-			source = "plugin"
-		}
-		if len(plugins) == 0 {
-			source = "tg"
-		}
 	}
 	// Preserve titles and channels for per-episode rules; merged links lose that context.
 	result, err := b.Search(ctx, d.Title, source, []string{"115", "magnet"}, plugins, channels, "results", false)
@@ -62,6 +59,7 @@ func (b *Bootstrap) SearchTV(ctx context.Context, d tv.Draft) ([]tv.Candidate, e
 
 func tvCandidates(data searchData) []tv.Candidate {
 	out := []tv.Candidate{}
+	seen := map[string]bool{}
 	for _, item := range data.Items {
 		for _, link := range item.Links {
 			if len(item.Links) > 1 && strings.TrimSpace(link.Title) == "" {
@@ -76,6 +74,11 @@ func tvCandidates(data searchData) []tv.Candidate {
 			if len(item.Links) == 1 {
 				title = strings.TrimSpace(title + " " + item.Description)
 			}
+			key := link.URL + "\n" + title + "\n" + item.Channel
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
 			out = append(out, tv.Candidate{Title: title, URL: link.URL, Password: link.Password, Cloud: link.Cloud, Channel: item.Channel, Size: tv.ParseSize(title)})
 		}
 	}

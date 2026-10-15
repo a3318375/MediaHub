@@ -23,6 +23,7 @@ type Rules struct {
 var ErrIdentityImmutable = errors.New("不能修改订阅的作品或季数")
 
 type Draft struct {
+	Source  string `json:"source"`
 	TMDBID  string `json:"tmdbId"`
 	Title   string `json:"title"`
 	Season  int    `json:"season"`
@@ -35,33 +36,57 @@ type Episode struct {
 	AirDate string `json:"airDate"`
 }
 type Candidate struct {
-	Title    string `json:"title"`
-	URL      string `json:"url"`
-	Cloud    string `json:"cloud"`
-	Channel  string `json:"channel"`
-	Password string `json:"password,omitempty"`
-	Size     int64  `json:"size"`
-	Episode  int    `json:"episode"`
+	Title         string `json:"title"`
+	URL           string `json:"url"`
+	Cloud         string `json:"cloud"`
+	Channel       string `json:"channel"`
+	Password      string `json:"password,omitempty"`
+	Size          int64  `json:"size"`
+	Episode       int    `json:"episode"`
+	CollectionEnd int    `json:"collectionEnd,omitempty"`
 }
 type Subscription struct {
 	Draft
-	ID            string      `json:"id"`
-	Poster        string      `json:"poster"`
-	Episodes      []Episode   `json:"episodes"`
-	Resources     []Candidate `json:"resources"`
-	LastCheckedAt string      `json:"lastCheckedAt"`
-	NextCheckAt   string      `json:"nextCheckAt"`
-	LastError     string      `json:"lastError"`
-	MetadataError string      `json:"metadataError"`
-	CreatedAt     string      `json:"createdAt"`
-	Revision      int         `json:"revision"`
+	ID                string      `json:"id"`
+	Poster            string      `json:"poster"`
+	Episodes          []Episode   `json:"episodes"`
+	Resources         []Candidate `json:"resources"`
+	LastCheckedAt     string      `json:"lastCheckedAt"`
+	NextCheckAt       string      `json:"nextCheckAt"`
+	LastError         string      `json:"lastError"`
+	MetadataError     string      `json:"metadataError"`
+	CreatedAt         string      `json:"createdAt"`
+	Revision          int         `json:"revision"`
+	MetadataCheckedAt string      `json:"metadataCheckedAt"`
+}
+
+// SourceOf preserves old subscriptions: explicit channels become direct TG,
+// while subscriptions without channels continue using PanSou.
+func SourceOf(d Draft) string {
+	if d.Source != "" {
+		return d.Source
+	}
+	if len(d.Channels) > 0 {
+		return "tg"
+	}
+	return "pansou"
 }
 
 var tmdbIDPattern = regexp.MustCompile(`^[1-9][0-9]{0,11}$`)
-var channelPattern = regexp.MustCompile(`^[a-zA-Z0-9_]{1,24}$`)
+var channelPattern = regexp.MustCompile(`^[a-zA-Z0-9_]{1,32}$`)
 
 // Validate normalizes a draft before either persistence or resource selection.
 func Validate(d *Draft) error {
+	d.Source = SourceOf(*d)
+	if d.Source != "tg" && d.Source != "pansou" {
+		return fmt.Errorf("订阅来源必须是 TG 频道或 PanSou")
+	}
+	if d.Source == "pansou" {
+		d.Channels = []string{}
+	}
+	if d.Source == "tg" && len(d.Channels) == 0 {
+		return fmt.Errorf("TG 订阅至少指定一个公开频道")
+	}
 	d.Title = strings.TrimSpace(d.Title)
 	if !tmdbIDPattern.MatchString(d.TMDBID) || d.Season < 1 || d.Season > 100 || d.Title == "" || len([]rune(d.Title)) > 120 {
 		return fmt.Errorf("请选择 TMDB 电视剧、有效季数和标题")
@@ -70,11 +95,11 @@ func Validate(d *Draft) error {
 		return fmt.Errorf("最多指定 20 个 TG 频道")
 	}
 	for i, c := range d.Channels {
-		c = strings.TrimPrefix(strings.TrimPrefix(strings.TrimSpace(c), "https://t.me/"), "@")
+		c = strings.TrimPrefix(strings.TrimPrefix(strings.TrimPrefix(strings.TrimRight(strings.TrimSpace(c), "/"), "https://t.me/s/"), "https://t.me/"), "@")
 		if !channelPattern.MatchString(c) {
 			return fmt.Errorf("TG 频道请填写公开频道用户名或 https://t.me/用户名")
 		}
-		d.Channels[i] = c
+		d.Channels[i] = strings.ToLower(c)
 	}
 	for _, r := range []string{d.Match, d.Exclude} {
 		if len(r) > 500 {
@@ -122,7 +147,7 @@ func Select(d Draft, items []Candidate) []Candidate {
 		if includeErr != nil || excludeErr != nil || !include.MatchString(item.Title) || (d.Exclude != "" && exclude.MatchString(item.Title)) {
 			continue
 		}
-		if len(d.Channels) > 0 {
+		if SourceOf(d) == "tg" && len(d.Channels) > 0 {
 			found := false
 			for _, c := range d.Channels {
 				if strings.EqualFold(item.Channel, c) {
@@ -147,6 +172,13 @@ func Select(d Draft, items []Candidate) []Candidate {
 			continue
 		}
 		episode, ok := singleEpisode(item.Title, d.Season)
+		item.CollectionEnd = 0
+		if !ok {
+			if end, valid := collectionEpisode(item.Title, d.Season); valid {
+				episode, ok = end, true
+				item.CollectionEnd = end
+			}
+		}
 		if !ok {
 			continue
 		}
@@ -165,6 +197,43 @@ func Select(d Draft, items []Candidate) []Candidate {
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].Episode < out[j].Episode })
 	return out
+}
+
+var progressEpisode = regexp.MustCompile(`(?:更(?:新至)?|更新至|更新)\s*(\d{1,4})\s*集|(?:全\s*(\d{1,4})\s*集|(\d{1,4})\s*集全)`)
+var explicitSeason = regexp.MustCompile(`(?i)\bS(\d{1,3})(?:\b|E)|第\s*(\d{1,3})\s*季`)
+
+// Collection progress is a channel's availability claim, not a verified file
+// mapping. Downloads must still select actual files through the public dialog.
+func collectionEpisode(title string, season int) (int, bool) {
+	for _, m := range explicitSeason.FindAllStringSubmatch(title, -1) {
+		raw := m[1]
+		if raw == "" {
+			raw = m[2]
+		}
+		s, _ := strconv.Atoi(raw)
+		if s != season {
+			return 0, false
+		}
+	}
+	end := 0
+	for _, m := range progressEpisode.FindAllStringSubmatch(title, -1) {
+		for _, v := range m[1:] {
+			if v == "" {
+				continue
+			}
+			n, _ := strconv.Atoi(v)
+			if end != 0 && end != n {
+				return 0, false
+			}
+			end = n
+		}
+	}
+	return end, end > 0
+}
+
+// Covers reports source availability; it never denotes a completed download.
+func Covers(c Candidate, episode int) bool {
+	return c.Episode == episode || (c.CollectionEnd > 0 && episode > 0 && episode <= c.CollectionEnd)
 }
 
 // singleEpisode permits repeated copies of the same marker (title + message

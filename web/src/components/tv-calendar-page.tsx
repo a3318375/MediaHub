@@ -170,7 +170,10 @@ export function TVCalendarPage() {
                               .filter((e) => e.airDate === date)
                               .map((e) => {
                                 const resource = s.resources?.find(
-                                  (r) => r.episode === e.number
+                                  (r) =>
+                                    r.episode === e.number ||
+                                    (r.collectionEnd &&
+                                      e.number <= r.collectionEnd)
                                 )
                                 return (
                                   <div
@@ -222,15 +225,15 @@ export function TVCalendarPage() {
                   </h4>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {s.enabled ? "追剧中" : "已暂停"} ·{" "}
-                    {s.channels?.length
+                    {s.source === "tg"
                       ? `TG：${s.channels.join(", ")}`
-                      : "使用全局搜索来源"}{" "}
-                    · 已找到 {s.resources?.length ?? 0} 集
+                      : "PanSou"}{" "}
+                    · 已找到 {s.resources?.length ?? 0} 条资源
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <TVSubscribeButton
-                    key={`${s.id}-${s.match}-${s.exclude}-${s.channels?.join(",")}`}
+                    key={`${s.id}-${s.source}-${s.match}-${s.exclude}-${s.channels?.join(",")}`}
                     tmdbId={s.tmdbId}
                     title={s.title}
                     subscription={s}
@@ -311,8 +314,10 @@ export function TVCalendarPage() {
                           target="_blank"
                           rel="noreferrer"
                         >
-                          第 {r.episode} 集 ·{" "}
-                          {r.cloud === "115" ? "115 分享" : "磁力"} ·{" "}
+                          {r.collectionEnd
+                            ? `合集更新至第 ${r.collectionEnd} 集`
+                            : `第 ${r.episode} 集`}{" "}
+                          · {r.cloud === "115" ? "115 分享" : "磁力"} ·{" "}
                           {r.size > 0
                             ? `${(r.size / 1024 ** 3).toFixed(2)} GB`
                             : "体积未知"}
@@ -330,7 +335,9 @@ export function TVCalendarPage() {
                               provider: "tmdb",
                               providerId: s.tmdbId,
                               season: s.season,
-                              episodes: [r.episode],
+                              episodes: r.collectionEnd
+                                ? undefined
+                                : [r.episode],
                             }
                             setDownloadSource({
                               url: r.url,

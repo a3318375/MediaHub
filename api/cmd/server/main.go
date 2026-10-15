@@ -86,6 +86,7 @@ func run() error {
 		return tvClient.TVSchedule(ctx, key, id, season)
 	}
 	tvUpdater.Search = search.SearchTV
+	tvUpdater.TGSearch = tv.NewChannelReader().Search
 	tvCtx, stopTV := context.WithCancel(context.Background())
 	tvDone := make(chan struct{})
 	go func() {

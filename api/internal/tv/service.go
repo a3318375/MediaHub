@@ -25,6 +25,7 @@ type Service struct {
 	Store    Repository
 	Metadata func(context.Context, string, int) (Metadata, error)
 	Search   func(context.Context, Draft) ([]Candidate, error)
+	TGSearch func(context.Context, Draft) ([]Candidate, error)
 	Now      func() time.Time
 	mu       sync.Mutex
 	active   map[string]bool
@@ -72,21 +73,20 @@ func (s *Service) Refresh(ctx context.Context, id string) (Subscription, error) 
 		sub.Episodes = data.Episodes
 		sub.Poster = data.Poster
 	}
+	sub.MetadataCheckedAt = now.UTC().Format(time.RFC3339)
 	// Missing metadata and undated episodes use a daily fallback; never invent an air date.
-	searchDue := len(sub.Episodes) == 0 || sub.MetadataError != ""
-	known := map[int]bool{}
-	for _, v := range sub.Resources {
-		known[v.Episode] = true
-	}
-	for _, e := range sub.Episodes {
-		if e.AirDate == "" || (e.AirDate <= today && !known[e.Number]) {
-			searchDue = true
-		}
-	}
+	searchDue, _ := schedule(sub, now)
 	if searchDue {
-		if s.Search == nil {
-			sub.LastError = "PanSou 服务未连接"
-		} else if items, e := s.Search(ctx, sub.Draft); e != nil {
+		search := s.Search
+		label := "PanSou"
+		if SourceOf(sub.Draft) == "tg" {
+			search = s.TGSearch
+			label = "TG 频道"
+		}
+		// Sources are mutually exclusive, including when one fails or is empty.
+		if search == nil {
+			sub.LastError = label + "服务未连接"
+		} else if items, e := search(ctx, sub.Draft); e != nil {
 			sub.LastError = e.Error()
 		} else {
 			// Re-rank old and new results together so a later search cannot replace
@@ -103,7 +103,16 @@ func (s *Service) Refresh(ctx context.Context, id string) (Subscription, error) 
 				}
 			}
 			for _, v := range selected {
-				if len(sub.Episodes) == 0 || allowed[v.Episode] {
+				eligible := len(sub.Episodes) == 0 || allowed[v.Episode]
+				if v.CollectionEnd > 0 {
+					for episode := range allowed {
+						if Covers(v, episode) {
+							eligible = true
+							break
+						}
+					}
+				}
+				if eligible {
 					merged[v.Episode] = v
 				}
 			}
@@ -115,22 +124,70 @@ func (s *Service) Refresh(ctx context.Context, id string) (Subscription, error) 
 		}
 	}
 	sub.LastCheckedAt = now.UTC().Format(time.RFC3339)
-	// Daily metadata refresh also discovers date changes; actual resource searches follow the schedule.
-	sub.NextCheckAt = now.Add(24 * time.Hour).UTC().Format(time.RFC3339)
-	for _, e := range sub.Episodes {
-		date, err := time.ParseInLocation("2006-01-02", e.AirDate, Location)
-		if err == nil && date.After(now) && date.Before(now.Add(24*time.Hour)) {
-			sub.NextCheckAt = date.UTC().Format(time.RFC3339)
-		}
+	_, next := schedule(sub, now)
+	sub.NextCheckAt = ""
+	if !next.IsZero() {
+		sub.NextCheckAt = next.UTC().Format(time.RFC3339)
 	}
-	if ctx.Err() != nil {
+	if ctx.Err() != nil && !errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		return sub, ctx.Err()
+	}
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		sub.LastError = "订阅检查超时，等待下次补查"
 	}
 	saved, err := s.Store.SaveTVRefresh(sub)
 	if err != nil {
 		return sub, err
 	}
 	return saved, nil
+}
+
+// schedule waits for the next missing episode's air date. Overdue/undated
+// episodes retry daily until covered; metadata polling never forces a search.
+func schedule(sub Subscription, now time.Time) (bool, time.Time) {
+	due := len(sub.Episodes) == 0
+	var next time.Time
+	today := now.In(Location).Format("2006-01-02")
+	for _, episode := range sub.Episodes {
+		found := false
+		for _, resource := range sub.Resources {
+			if Covers(resource, episode.Number) {
+				found = true
+				break
+			}
+		}
+		if found {
+			continue
+		}
+		date, err := time.ParseInLocation("2006-01-02", episode.AirDate, Location)
+		if err != nil || episode.AirDate <= today {
+			due = true
+			continue
+		}
+		if next.IsZero() || date.Before(next) {
+			next = date
+		}
+	}
+	if due {
+		retry := now.Add(24 * time.Hour)
+		if next.IsZero() || retry.Before(next) {
+			next = retry
+		}
+	}
+	return due, next
+}
+
+func needsRefresh(sub Subscription, now time.Time) bool {
+	if sub.LastCheckedAt == "" {
+		return true
+	}
+	next, e := time.Parse(time.RFC3339, sub.NextCheckAt)
+	if e == nil && !now.Before(next) {
+		return true
+	}
+	// Recheck changing TMDB schedules without querying either resource source.
+	metadata, e := time.Parse(time.RFC3339, sub.MetadataCheckedAt)
+	return e != nil || !now.Before(metadata.Add(24*time.Hour))
 }
 
 // Run checks persisted deadlines, so restarts do not reset the daily schedule.
@@ -155,8 +212,7 @@ func (s *Service) Run(ctx context.Context, log func(string)) {
 				if !v.Enabled {
 					continue
 				}
-				next, e := time.Parse(time.RFC3339, v.NextCheckAt)
-				if e == nil && s.Now().Before(next) {
+				if !needsRefresh(v, s.Now()) {
 					continue
 				}
 				run, cancel := context.WithTimeout(ctx, 90*time.Second)

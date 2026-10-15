@@ -18,19 +18,29 @@ func (f *tvSearchFixture) Search(keyword string, channels []string, concurrency 
 	return model.SearchResponse{Results: []model.SearchResult{{Title: "剧集 S01E01 4K", Content: "5 GB", Channel: "my_channel", Links: []model.Link{{Type: "115", URL: "https://115.com/s/one", Password: "abcd"}}}}}, nil
 }
 
-func TestTVSearchRestrictsTGAndPreservesResourceFields(t *testing.T) {
+func TestTVSearchUsesGlobalPanSouSettingsAndPreservesResourceFields(t *testing.T) {
 	bridge, _, _ := testConfiguredBridge(t)
 	fake := &tvSearchFixture{}
 	bridge.adapter.service = fake
-	items, err := bridge.SearchTV(context.Background(), tv.Draft{Title: "剧集", Season: 1, Rules: tv.Rules{Channels: []string{"my_channel"}}})
+	items, err := bridge.SearchTV(context.Background(), tv.Draft{Source: "pansou", Title: "剧集", Season: 1, Rules: tv.Rules{Channels: []string{"ignored_subscription_channel"}}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if fake.args[5] != "tg" || len(fake.args[6].([]string)) != 0 || !reflect.DeepEqual(fake.args[1], []string{"my_channel"}) {
+	if fake.args[5] != "all" || len(fake.args[6].([]string)) == 0 || !reflect.DeepEqual(fake.args[1], []string{"default_channel"}) {
 		t.Fatalf("channel scoping lost: %+v", fake.args)
 	}
 	if len(items) != 1 || items[0].Password != "abcd" || items[0].Size != 5*1024*1024*1024 || items[0].Channel != "my_channel" {
 		t.Fatalf("fields lost: %+v", items)
+	}
+}
+
+func TestTVSearchRejectsDirectTGSubscription(t *testing.T) {
+	bridge, _, fake := testConfiguredBridge(t)
+	if _, err := bridge.SearchTV(context.Background(), tv.Draft{Source: "tg"}); err == nil {
+		t.Fatal("TG routed through PanSou")
+	}
+	if len(fake.args) > 0 {
+		t.Fatal("PanSou called for TG subscription")
 	}
 }
 

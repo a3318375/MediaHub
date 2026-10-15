@@ -1,6 +1,7 @@
 import { getAccessToken } from "@/lib/auth-api"
 
 export type TVDraft = {
+  source: "tg" | "pansou"
   tmdbId: string
   title: string
   season: number
@@ -17,6 +18,7 @@ export type TVResource = {
   password?: string
   size: number
   episode: number
+  collectionEnd?: number
 }
 export type TVSubscription = TVDraft & {
   id: string

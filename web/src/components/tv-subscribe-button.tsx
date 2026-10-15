@@ -24,6 +24,9 @@ export function TVSubscribeButton({
 }) {
   const [open, setOpen] = useState(false)
   const [season, setSeason] = useState(subscription?.season ?? 1)
+  const [source, setSource] = useState<"tg" | "pansou">(
+    subscription?.source ?? (subscription?.channels?.length ? "tg" : "pansou")
+  )
   const [channels, setChannels] = useState(
     subscription?.channels?.join(", ") ?? ""
   )
@@ -39,8 +42,10 @@ export function TVSubscribeButton({
       tmdbId,
       title,
       season,
+      source,
       enabled: subscription?.enabled ?? true,
-      channels: channels.split(/[,，\s]+/).filter(Boolean),
+      channels:
+        source === "tg" ? channels.split(/[,，\s]+/).filter(Boolean) : [],
       match,
       exclude,
     }
@@ -89,6 +94,26 @@ export function TVSubscribeButton({
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
+            <fieldset className="grid gap-2">
+              <legend className="mb-2 text-sm">订阅来源</legend>
+              <div className="flex gap-2">
+                <Button
+                  variant={source === "tg" ? "default" : "outline"}
+                  onClick={() => setSource("tg")}
+                >
+                  TG 频道
+                </Button>
+                <Button
+                  variant={source === "pansou" ? "default" : "outline"}
+                  onClick={() => setSource("pansou")}
+                >
+                  PanSou
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                两种来源互不补搜。到播出日检查，未找到每天补查；找到后等下一集播出再查。
+              </p>
+            </fieldset>
             <label className="grid gap-2 text-sm">
               订阅第几季
               <Input
@@ -100,17 +125,27 @@ export function TVSubscribeButton({
                 onChange={(e) => setSeason(Number(e.target.value))}
               />
             </label>
-            <label className="grid gap-2 text-sm">
-              PanSou 公开 TG 频道（可选，多个以逗号分隔）
-              <Input
-                placeholder="频道用户名、@username 或 https://t.me/username"
-                value={channels}
-                onChange={(e) => setChannels(e.target.value)}
-              />
-            </label>
-            <p className="text-xs text-muted-foreground">
-              指定后只搜索这些频道；留空使用全局 PanSou 搜索来源。
-            </p>
+            {source === "tg" && (
+              <>
+                <label className="grid gap-2 text-sm">
+                  公开 TG 频道（必填，多个以逗号分隔）
+                  <Input
+                    placeholder="例如 https://t.me/vip115hot"
+                    value={channels}
+                    onChange={(e) => setChannels(e.target.value)}
+                  />
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  直接搜索指定频道的公开历史消息，不调用
+                  PanSou。暂不支持需要登录的私有频道。
+                </p>
+              </>
+            )}
+            {source === "pansou" && (
+              <p className="text-xs text-muted-foreground">
+                只使用全局 PanSou 搜索配置，不直接检索订阅频道。
+              </p>
+            )}
             <label className="grid gap-2 text-sm">
               匹配正则（可选）
               <Input
@@ -139,7 +174,11 @@ export function TVSubscribeButton({
             )}
             <Button
               disabled={
-                busy || !Number.isInteger(season) || season < 1 || season > 100
+                busy ||
+                !Number.isInteger(season) ||
+                season < 1 ||
+                season > 100 ||
+                (source === "tg" && !channels.trim())
               }
               onClick={() => void save()}
             >
