@@ -1,0 +1,199 @@
+.media-filter .tabs {
+  flex: 1;
+  overflow: visible;
+}
+.media-filter .tabs__list-container {
+  background: transparent;
+  border-radius: 0;
+}
+.media-filter .tabs__list-container__scroller {
+  overflow: visible !important;
+}
+.media-filter .tabs__list {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+  padding: 0;
+  background: transparent;
+}
+.media-filter .tabs__tab {
+  width: auto;
+  flex: 0 0 auto;
+  border-radius: 7px;
+  isolation: isolate;
+  height: auto;
+}
+.media-filter .tabs__indicator {
+  border-radius: 7px;
+  box-shadow: none;
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  z-index: -1;
+}
+.media-filter .tabs__list-container__scroll-prev,
+.media-filter .tabs__list-container__scroll-next {
+  display: none !important;
+}
+
+/* Original poster interactions: independent details, search and subscription controls. */
+.poster-open {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  z-index: 1;
+}
+.poster-open:focus-visible {
+  outline: 3px solid var(--accent, #17a398);
+  outline-offset: -4px;
+}
+.poster-kind {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  background: #111b;
+  color: #fff;
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  pointer-events: none;
+}
+.poster-overlay {
+  position: absolute;
+  inset: 35% 0 0;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: linear-gradient(transparent, #000e);
+  color: white;
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+  z-index: 2;
+}
+.poster-card:hover .poster-overlay,
+.poster-card:focus-within .poster-overlay {
+  opacity: 1;
+}
+.poster-overlay h3 {
+  font-size: 15px;
+  margin: 5px 0;
+}
+.poster-overlay p {
+  font-size: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0 0 8px;
+}
+.poster-quick-actions {
+  display: flex;
+  justify-content: space-between;
+  pointer-events: auto;
+}
+.poster-quick-actions button {
+  color: white;
+  background: #ffffff24;
+}
+.poster-subscribe {
+  width: 100%;
+  margin-top: 8px;
+}
+.media-nav-section {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 16px 12px 6px;
+}
+@media (hover: none), (max-width: 700px) {
+  .poster-overlay {
+    opacity: 1;
+    inset: auto 0 0;
+    padding: 8px;
+  }
+  .poster-overlay > small,
+  .poster-overlay > h3,
+  .poster-overlay > p {
+    display: none;
+  }
+}
+
+.media-sidebar nav button {
+  width: 100%;
+}
+.media-sidebar nav > div:not(:first-child) .media-nav-label {
+  padding-top: 20px;
+}
+.header-menu-search {
+  position: relative;
+  width: 210px;
+}
+.header-menu-search input {
+  border: 1px solid var(--border);
+  background: var(--surface-secondary);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  width: 100%;
+  font-size: 13px;
+}
+.header-menu-search ul {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  list-style: none;
+  min-width: 260px;
+  z-index: 30;
+  box-shadow: 0 12px 30px #0002;
+}
+.header-menu-search li > button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  background: transparent;
+  border-radius: 6px;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+.header-menu-search li > button[aria-selected="true"] {
+  background: var(--surface-secondary);
+}
+.header-menu-search small {
+  color: var(--muted);
+}
+.settings-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.settings-choices button {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--surface-secondary);
+  color: inherit;
+  cursor: pointer;
+}
+.settings-choices button[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.settings-section + section {
+  border-top: 1px solid var(--border);
+  padding-top: 22px;
+}

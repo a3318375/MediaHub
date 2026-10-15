@@ -1,0 +1,222 @@
+.media-shell {
+  min-height: 100vh;
+}
+.management-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.management-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.management-card h2 {
+  font-size: 18px;
+  font-weight: 650;
+}
+.management-card h3 {
+  font-size: 15px;
+  font-weight: 600;
+}
+.management-card p,
+.management-card small {
+  overflow-wrap: anywhere;
+}
+.management-card small,
+.management-row small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.management-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.management-align-start {
+  align-items: start;
+}
+.management-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+}
+.management-field select,
+.management-field textarea {
+  background: var(--surface);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  width: 100%;
+  min-height: 44px;
+}
+.management-field textarea {
+  resize: vertical;
+}
+.management-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.management-toggle input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+.management-actions,
+.management-checks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.management-checks {
+  gap: 8px 24px;
+}
+.management-stack fieldset {
+  border: 0;
+  padding: 0;
+  min-width: 0;
+}
+.management-stack fieldset:disabled {
+  opacity: 0.65;
+}
+.management-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.management-row > div {
+  min-width: 0;
+}
+.management-notice {
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--foreground);
+  font-size: 13px;
+}
+.directory-field {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+}
+.directory-field > label {
+  flex: 1;
+}
+.secret-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.secret-controls small,
+.secret-value {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  max-width: 100%;
+}
+.management-table-wrap {
+  overflow-x: auto;
+}
+.management-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+.management-table th,
+.management-table td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.management-table td:not(.log-message) {
+  white-space: nowrap;
+}
+.log-message {
+  min-width: 220px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.anime-catalog {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.anime-preview-poster {
+  max-width: 120px;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+.media-main > .management-stack + .media-settings {
+  margin-top: 24px;
+}
+.media-sidebar {
+  overflow-y: auto;
+}
+.media-sidebar-bottom {
+  padding-top: 24px;
+}
+.media-shell :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+@media (max-width: 720px) {
+  .management-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .management-card {
+    padding: 18px;
+  }
+  .management-row {
+    flex-wrap: wrap;
+  }
+  .directory-field {
+    flex-wrap: wrap;
+  }
+  .directory-field > label {
+    min-width: 160px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .media-shell *,
+  .media-shell *::before,
+  .media-shell *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+@media (max-width: 760px) {
+  .media-shell:not(.mobile-open) .media-sidebar {
+    visibility: hidden;
+  }
+  .media-shell.mobile-open .media-sidebar {
+    visibility: visible;
+  }
+  .media-heading {
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+}
