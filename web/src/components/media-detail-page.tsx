@@ -1,4 +1,11 @@
-import { ArrowLeftIcon, PlayIcon, SearchIcon, StarIcon, UserRoundIcon } from "lucide-react"
+import { TVSubscribeButton } from "@/components/tv-subscribe-button"
+import {
+  ArrowLeftIcon,
+  PlayIcon,
+  SearchIcon,
+  StarIcon,
+  UserRoundIcon,
+} from "lucide-react"
 import { cn } from "cn"
 import type { MediaDetailRecord } from "@/components/media-detail-context"
 import { Badge } from "@/components/ui/badge"
@@ -64,7 +71,7 @@ export function MediaDetailPage({
             <p className="text-xs font-semibold tracking-[0.18em] text-white/70 uppercase">
               {source} · {media.kind}
             </p>
-            <h1 className="mt-2 break-words text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+            <h1 className="mt-2 text-3xl font-bold tracking-tight break-words sm:text-4xl lg:text-5xl">
               {title}
               {media.year && (
                 <span className="ml-3 text-xl font-semibold text-white/70 sm:text-2xl">
@@ -121,6 +128,24 @@ export function MediaDetailPage({
               </p>
             )}
             <div className="mt-5 flex flex-wrap justify-end gap-2">
+              {(media.mediaType === "tv" ||
+                media.kind === "剧集" ||
+                media.kind === "电视剧") &&
+                (media.externalIds?.tmdb ||
+                  (media.provider === "tmdb" || media.source === "tmdb"
+                    ? (media.providerId ?? media.sourceId)
+                    : undefined)) && (
+                  <TVSubscribeButton
+                    key={media.mediaId ?? media.title}
+                    title={title}
+                    tmdbId={
+                      media.externalIds?.tmdb ??
+                      media.providerId ??
+                      media.sourceId ??
+                      ""
+                    }
+                  />
+                )}
               {(media.actionLabel || media.onAction) && (
                 <Button
                   variant="secondary"
@@ -209,42 +234,56 @@ export function MediaDetailPage({
                 <CardTitle>主要演职员</CardTitle>
               </CardHeader>
               {cast.length > 0 ? (
-              <CardContent className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12">
-                {cast.map((person, index) => (
-                  <div
-                    key={`${person.personId ?? person.name}:${person.role}:${index}`}
-                    className="overflow-hidden rounded-xl border bg-card"
-                  >
-                    <div className="relative aspect-[4/5] overflow-hidden bg-muted">
-                      {person.profilePath ? (
-                        <MediaPoster
-                          src={mediaImageUrl(person.profilePath, "w185") ?? person.profilePath}
-                          alt={`${person.name} 头像`}
-                          className="absolute inset-0 size-full object-cover object-top"
-                          loading="lazy"
-                          fallbackLabel="暂无头像"
-                        />
-                      ) : (
-                        <div className="flex size-full items-center justify-center text-muted-foreground">
-                          <UserRoundIcon className="size-8" aria-hidden="true" />
-                          <span className="sr-only">暂无头像</span>
-                        </div>
-                      )}
+                <CardContent className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 2xl:grid-cols-12">
+                  {cast.map((person, index) => (
+                    <div
+                      key={`${person.personId ?? person.name}:${person.role}:${index}`}
+                      className="overflow-hidden rounded-xl border bg-card"
+                    >
+                      <div className="relative aspect-[4/5] overflow-hidden bg-muted">
+                        {person.profilePath ? (
+                          <MediaPoster
+                            src={
+                              mediaImageUrl(person.profilePath, "w185") ??
+                              person.profilePath
+                            }
+                            alt={`${person.name} 头像`}
+                            className="absolute inset-0 size-full object-cover object-top"
+                            loading="lazy"
+                            fallbackLabel="暂无头像"
+                          />
+                        ) : (
+                          <div className="flex size-full items-center justify-center text-muted-foreground">
+                            <UserRoundIcon
+                              className="size-8"
+                              aria-hidden="true"
+                            />
+                            <span className="sr-only">暂无头像</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-0.5 p-1.5">
+                        <p
+                          className="truncate text-xs font-semibold"
+                          title={person.name}
+                        >
+                          {person.name}
+                        </p>
+                        <p
+                          className="truncate text-[10px] text-muted-foreground"
+                          title={person.role}
+                        >
+                          {person.role}
+                        </p>
+                      </div>
                     </div>
-                    <div className="space-y-0.5 p-1.5">
-                      <p className="truncate text-xs font-semibold" title={person.name}>
-                        {person.name}
-                      </p>
-                      <p className="truncate text-[10px] text-muted-foreground" title={person.role}>
-                        {person.role}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
+                  ))}
+                </CardContent>
               ) : (
                 <CardContent className="text-sm text-muted-foreground">
-                  {media.detailLoading ? "正在加载演职员信息…" : "暂无演职员信息。"}
+                  {media.detailLoading
+                    ? "正在加载演职员信息…"
+                    : "暂无演职员信息。"}
                 </CardContent>
               )}
             </Card>

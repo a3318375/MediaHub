@@ -1,3 +1,4 @@
+import { TVSubscribeButton } from "@/components/tv-subscribe-button"
 import type { ReactNode } from "react"
 import { HeartIcon, SearchIcon } from "lucide-react"
 import type { MediaSummary } from "@/lib/media-contract"
@@ -155,6 +156,11 @@ export function MediaPosterCard({
           </div>
         </div>
       </div>
+      {item.mediaType === "tv" && item.provider === "tmdb" && (
+        <div className="mt-2">
+          <TVSubscribeButton tmdbId={item.providerId} title={title.title} />
+        </div>
+      )}
     </article>
   )
 }

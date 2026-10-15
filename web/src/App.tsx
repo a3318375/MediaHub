@@ -4,6 +4,7 @@ import { EmbyDashboard } from "@/components/emby-dashboard"
 import { DiscoverExplorePage } from "@/components/discover-explore-page"
 import { RankingsPage } from "@/components/rankings-page"
 import { AnimeSubscriptionsPage } from "@/components/anime-subscriptions-page"
+import { TVCalendarPage } from "@/components/tv-calendar-page"
 import { LogsPage } from "@/components/logs-page"
 import { MediaDetailPage } from "@/components/media-detail-page"
 import {
@@ -194,6 +195,8 @@ export function App() {
           />
         ) : activePath === "/discover/anime" ? (
           <AnimeSubscriptionsPage />
+        ) : activePath === "/discover/calendar" ? (
+          <TVCalendarPage />
         ) : activePath === "/tools/logs" ? (
           <LogsPage />
         ) : activePath === "/tools/downloads" ? (

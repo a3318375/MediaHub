@@ -19,6 +19,8 @@ import (
 	"media-center/internal/organize"
 	"media-center/internal/pansoubridge"
 	"media-center/internal/store"
+	"media-center/internal/tmdb"
+	"media-center/internal/tv"
 )
 
 func main() {
@@ -74,7 +76,25 @@ func run() error {
 	}()
 	defer func() { stopDownloads(); <-downloadDone }()
 	organizer := &organize.Service{Store: db, Factory: downloads.Factory}
+	tvUpdater := tv.New(db)
+	tvClient := tmdb.NewClient()
+	tvUpdater.Metadata = func(ctx context.Context, id string, season int) (tv.Metadata, error) {
+		key, err := db.ReadSecret("tmdb", "tmdb.apiKey")
+		if err != nil {
+			return tv.Metadata{}, err
+		}
+		return tvClient.TVSchedule(ctx, key, id, season)
+	}
+	tvUpdater.Search = search.SearchTV
+	tvCtx, stopTV := context.WithCancel(context.Background())
+	tvDone := make(chan struct{})
+	go func() {
+		defer close(tvDone)
+		tvUpdater.Run(tvCtx, func(message string) { _ = db.RecordLog("追剧", "WARN", message) })
+	}()
+	defer func() { stopTV(); <-tvDone }()
 	handler := httpapi.NewRouterWithOrganizer(db, updater, downloads, organizer, search.Handler(), search.MetaHandler(), search.CheckHandler())
+	httpapi.MountTV(handler, db, tvUpdater)
 	if staticDir := os.Getenv("MEDIA_CENTER_WEB_DIR"); staticDir != "" {
 		if err := httpapi.MountFrontend(handler, staticDir); err != nil {
 			return err

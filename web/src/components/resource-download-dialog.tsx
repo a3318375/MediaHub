@@ -32,6 +32,7 @@ import {
   type DownloadFile,
   type DownloadMediaContext,
   type DownloadTask,
+  type DownloadReference,
 } from "@/lib/download-api"
 
 export type DownloadSource = {
@@ -39,6 +40,7 @@ export type DownloadSource = {
   password?: string
   title: string
   media?: DownloadMediaContext
+  reference?: DownloadReference
 }
 export function ResourceDownloadDialog({
   source,
@@ -136,7 +138,7 @@ export function ResourceDownloadDialog({
         kind: sharing ? "share_transfer" : "offline",
         url: source.url,
         directoryId: "",
-        reference: {
+        reference: source.reference ?? {
           source: "media_search",
           sourceId: context?.providerId
             ? `${context.provider}:${context.type ?? "unknown"}:${context.providerId}`

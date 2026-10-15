@@ -10,6 +10,7 @@ import (
 )
 
 type resourceLink struct {
+	Title     string     `json:"title,omitempty"`
 	Cloud     string     `json:"cloud"`
 	URL       string     `json:"url"`
 	Password  string     `json:"password,omitempty"`
@@ -62,7 +63,7 @@ func mapSearchResponse(resp model.SearchResponse) searchData {
 	for _, item := range resp.Results {
 		out := resourceItem{Title: item.Title, Description: item.Content, Channel: item.Channel, UpdatedAt: optionalTime(item.Datetime), Tags: item.Tags}
 		for _, link := range item.Links {
-			out.Links = append(out.Links, resourceLink{Cloud: link.Type, URL: link.URL, Password: link.Password, UpdatedAt: optionalTime(link.Datetime)})
+			out.Links = append(out.Links, resourceLink{Title: link.WorkTitle, Cloud: link.Type, URL: link.URL, Password: link.Password, UpdatedAt: optionalTime(link.Datetime)})
 		}
 		data.Items = append(data.Items, out)
 	}

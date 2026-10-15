@@ -119,3 +119,5 @@ CREATE TABLE IF NOT EXISTS anime_download_rule_accounts (
 CREATE TABLE IF NOT EXISTS organize_rules (id TEXT PRIMARY KEY, data TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS organize_plans (id TEXT PRIMARY KEY, rule_id TEXT NOT NULL, run_date TEXT, state TEXT NOT NULL, data TEXT NOT NULL, revision INTEGER NOT NULL DEFAULT 1, UNIQUE(rule_id,run_date));
 CREATE TABLE IF NOT EXISTS organize_bindings (account_id TEXT NOT NULL, file_id TEXT NOT NULL, data TEXT NOT NULL, PRIMARY KEY(account_id,file_id));
+
+CREATE TABLE IF NOT EXISTS tv_subscriptions (id TEXT PRIMARY KEY, data BLOB NOT NULL);
