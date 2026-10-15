@@ -4,7 +4,7 @@ import { useEffect,useState,type ReactNode } from "react";
 import { downloadApi,type DownloadFile } from "../../lib/download-api";
 import type { Session } from "../../lib/media-service";
 import { Empty,errorText } from "../media/MediaUI";
-import { Overlay } from './Overlay';
+import { Overlay } from "./Overlay";
 
 export function Field({
   label,
@@ -13,6 +13,7 @@ export function Field({
   type = "text",
   required = false,
   placeholder,
+  min, max, disabled,
 }: {
   label: string;
   value: string | number;
@@ -20,6 +21,7 @@ export function Field({
   type?: string;
   required?: boolean;
   placeholder?: string;
+  min?: number; max?: number; disabled?: boolean;
 }) {
   return (
     <label className="management-field">
@@ -31,6 +33,7 @@ export function Field({
         onChange={(e) => onChange(e.target.value)}
         required={required}
         placeholder={placeholder}
+        min={min} max={max} disabled={disabled}
       />
     </label>
   );

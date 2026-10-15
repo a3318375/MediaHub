@@ -1839,3 +1839,8 @@ a:focus-visible {
 .anime-catalog-posters {
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
 }
+
+.anime-catalog-list { display:grid; max-height:320px; overflow-y:auto; gap:8px; }
+.anime-catalog-item { display:flex;align-items:center;text-align:left;gap:12px;padding:12px;border-radius:8px; }
+.anime-catalog-item img {width:36px;height:48px;object-fit:cover;}
+.anime-catalog-item span {flex:1;}
