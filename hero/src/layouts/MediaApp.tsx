@@ -1,33 +1,22 @@
 import { lazy, Suspense } from "react";
 import { useMediaWorkspace } from "../hooks/useMediaWorkspace";
+import {
+  navigation,
+  WorkspaceHeader,
+  WorkspaceSidebar,
+} from "./WorkspaceChrome";
 
 import { Button, Card, Chip } from "@heroui/react";
 
 import {
-  CalendarDays,
   Check,
   ChevronRight,
-  Clapperboard,
   Film,
-  Library,
-  LogOut,
-  Menu,
-  Moon,
   Plus,
   RefreshCw,
-  ScrollText,
-  Search,
-  Settings,
-  Sun,
-  Telescope,
-  Trophy,
   Tv,
   X,
 } from "lucide-react";
-
-import { MediaUserMenu } from "../components/navigation/UserMenu";
-
-import { HeaderSearch } from "../components/navigation/HeaderSearch";
 
 import { navigationItems } from "../lib/parity";
 
@@ -72,21 +61,6 @@ const Logs = lazy(() =>
 
 const Emby = lazy(() =>
   import("../pages/emby/Emby").then((m) => ({ default: m.Emby })),
-);
-
-const navIcons = {
-  emby: Library,
-  search: Search,
-  discover: Telescope,
-  rankings: Trophy,
-  anime: Clapperboard,
-  calendar: CalendarDays,
-  logs: ScrollText,
-  settings: Settings,
-};
-
-const navigation = navigationItems.map(
-  ([id, label, section]) => [id, label, navIcons[id], section] as const,
 );
 
 export type Page =
@@ -172,83 +146,18 @@ export default function MediaApp() {
           onClick={() => setMobile(false)}
         />
       )}
-      <aside className="sidebar media-sidebar">
-        <div className="media-brand">
-          <img src="/favicon.svg" alt="" />
-          <span>
-            MediaHub<small>你的私人影视空间</small>
-          </span>
-        </div>
-        <nav>
-          {navigation.map(([id, label, Icon, section], index) => (
-            <div key={id}>
-              {(index === 0 || navigation[index - 1][3] !== section) && (
-                <div className="media-nav-label">{section}</div>
-              )}
-              <button
-                key={id}
-                aria-current={page === id ? "page" : undefined}
-                className={page === id ? "active" : ""}
-                onClick={() => go(id)}
-              >
-                <Icon size={18} />
-                {label}
-              </button>
-            </div>
-          ))}
-        </nav>
-        <div className="media-sidebar-bottom">
-          <div className="media-mode">
-            <span className="mode-dot" />
-            {session.mode === "demo" ? "本地演示模式" : "服务已连接"}
-            <small>
-              {session.mode === "demo"
-                ? "数据仅保存在当前浏览器"
-                : "已连接 MediaHub 服务"}
-            </small>
-          </div>
-          <button onClick={logout}>
-            <LogOut size={17} />
-            退出登录
-          </button>
-        </div>
-      </aside>
+      <WorkspaceSidebar session={session} page={page} go={go} logout={logout} />
       <div className="media-workspace">
-        <header className="media-topbar">
-          <div>
-            <Button
-              variant="ghost"
-              isIconOnly
-              aria-label="展开导航"
-              className="media-mobile-toggle"
-              onPress={() => setMobile(!mobile)}
-            >
-              <Menu size={19} />
-            </Button>
-            <span className="media-breadcrumb">工作空间</span>
-            <ChevronRight size={14} />
-            <strong>{title}</strong>
-          </div>
-          <div>
-            <HeaderSearch navigate={(p) => go(p as Page)} />
-            <Chip size="sm" variant="soft">
-              {session.mode === "demo" ? "DEMO" : "LIVE"}
-            </Chip>
-            <Button
-              variant="ghost"
-              isIconOnly
-              aria-label={dark ? "切换浅色" : "切换深色"}
-              onPress={() => setDark(!dark)}
-            >
-              {dark ? <Sun size={18} /> : <Moon size={18} />}
-            </Button>
-            <MediaUserMenu
-              session={session}
-              settings={() => go("settings")}
-              logout={logout}
-            />
-          </div>
-        </header>
+        <WorkspaceHeader
+          session={session}
+          title={title}
+          go={go}
+          logout={logout}
+          mobile={mobile}
+          setMobile={setMobile}
+          dark={dark}
+          setDark={setDark}
+        />
         <main className="media-main">
           {detail && (
             <Detail
@@ -262,7 +171,7 @@ export default function MediaApp() {
                   tmdbId: m.sourceId,
                   title: m.title,
                   season,
-                  source: "tg",
+                  source: "pansou",
                   enabled: true,
                   channels: [],
                   match: "",
@@ -304,7 +213,7 @@ export default function MediaApp() {
                       tmdbId: "",
                       title: "",
                       season: 1,
-                      source: "tg",
+                      source: "pansou",
                       enabled: true,
                       channels: [],
                       match: "",
@@ -472,7 +381,7 @@ export default function MediaApp() {
                         tmdbId: m.sourceId,
                         title: m.title,
                         season: 1,
-                        source: "tg",
+                        source: "pansou",
                         enabled: true,
                         channels: [],
                         match: "",
@@ -518,7 +427,7 @@ export default function MediaApp() {
                       tmdbId: "",
                       title: "",
                       season: 1,
-                      source: "tg",
+                      source: "pansou",
                       enabled: true,
                       channels: [],
                       match: "",

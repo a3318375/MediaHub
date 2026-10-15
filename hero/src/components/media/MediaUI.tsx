@@ -10,8 +10,8 @@ import { formatRegion, presentTitle } from "../../lib/media-presentation";
 
 import { kindLabels } from "../../lib/formatters";
 import { image, readSession } from "../../lib/media-service";
-export type { API } from "../../lib/formatters";
 export { dateCN, errorText, kindLabels, time } from "../../lib/formatters";
+export type { API } from "../../lib/formatters";
 
 export function FilterTabs({
   label,
