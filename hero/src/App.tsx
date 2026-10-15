@@ -124,7 +124,7 @@ function ChoiceMenu({
     </Dropdown>
   );
 }
-function Overlay({
+export function Overlay({
   title,
   children,
   footer,
@@ -190,7 +190,7 @@ function Growth({
   );
 }
 
-function Login({
+export function Login({
   onLogin,
   onForgot,
 }: {

@@ -134,11 +134,11 @@ docker compose up -d
 
 ## 参与开发
 
-### HeroUI 独立前端原型
+### HeroUI 新前端
 
-`hero/` 是独立的 Vite + React + TypeScript + HeroUI v3 项目，参考 [HeroUI Dashboard 模板](https://heroui.com/en/themes?template=dashboard) 还原侧栏、指标卡、图表和员工表格，另提供同风格登录页。使用本地模拟数据与浏览器存储，无需启动后端；字体和头像也已保存在项目内。
+`hero/` 是独立的 Vite + React + TypeScript + HeroUI v3 项目，参考 [HeroUI Dashboard 模板](https://heroui.com/en/themes?template=dashboard) 的侧栏、卡片与配色。首页已替换为 MediaHub 业务总览；原始图表和员工表格原型保留在 `/?template=dashboard`，便于对照。
 
-后续业务界面以 `hero/` 的 HeroUI 框架继续开发，逐步迁入影视探索、榜单推荐、资源搜索、电视剧订阅与追剧日历等现有功能。保留独立运行与模拟数据预览能力，业务接口沿用现有 Go 后端契约。
+新界面已提供影视探索、作品详情、网站与平台榜单、资源搜索、电视剧订阅、追剧日历和下载记录。筛选使用 Tab，影视使用海报卡片；榜单区展示来源网站图标，平台目录及图标在服务模式下动态获取。平台片库按 TMDB 热度排序，并非平台官方 Top 10。浏览结果缓存 5 分钟、平台目录缓存 24 小时，最多 80 项，退出时清空。
 
 ```sh
 cd hero
@@ -146,7 +146,11 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-访问 `http://127.0.0.1:5174/`。点击 **Use demo account** 填入账号，再点击 **Sign in**；演示账号为 `kate@acme.com`，密码为 `heroui123`。支持记住登录、退出、浅色/暗色主题、图表周期切换、员工搜索/筛选/排序/分页、成员查看/编辑/增删及 CSV 导出。邀请只在本地增加成员，不发送邮件。`pnpm build` 执行类型检查并生成静态产物。
+访问 `http://127.0.0.1:5174/`。点击 **Use demo account** 填入账号，再点击 **Sign in**；演示账号为 `kate@acme.com`，密码为 `heroui123`。默认无需后端，示例影视和分享链接均标明为演示资料；订阅修改与演示下载记录保存在当前浏览器，不会执行真实资源搜索或下载。支持记住演示登录、退出、浅色/暗色主题和手机布局。字体、头像和基础来源图标保存在项目内。
+
+登录页点击 **连接已有 MediaHub 服务** 可使用原管理员账号连接真实 API；服务登录只保存在当前标签页。Vite 默认将 `/api` 代理至 `http://127.0.0.1:18080`，可在 `hero/vite.config.ts` 调整目标。服务模式接口失败会显示错误，不会混入演示结果。已有 TG / PanSou 调度与缓存策略保持由 Go 后端负责。资源搜索支持链接复制、115 整份分享转存和磁力离线任务；逐文件转存、动漫 RSS、媒体整理、Emby 专属页面、服务凭证配置及业务日志暂继续使用 `web/`。Docker 默认入口仍是原前端。
+
+`pnpm build` 执行类型检查并生成静态产物；`pnpm test` 检查缓存隔离、并发去重、API 错误、搜索契约与独立演示模式。
 
 ### 现有应用
 
