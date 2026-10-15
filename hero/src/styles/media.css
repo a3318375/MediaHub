@@ -1860,3 +1860,8 @@ a:focus-visible {
 @media(min-width:640px) { .anime-subscription-grid { grid-template-columns:repeat(4,minmax(0,1fr)); } }
 @media(min-width:1024px) { .anime-subscription-grid { grid-template-columns:repeat(5,minmax(0,1fr)); } }
 @media(min-width:1536px) { .anime-subscription-grid { grid-template-columns:repeat(6,minmax(0,1fr)); } }
+
+.poster-art::after { content:"";position:absolute;inset:0;background:linear-gradient(0deg,#0004,transparent 55%,#0001);pointer-events:none; }
+.poster-art > img {position:absolute;inset:0;}
+.poster-overlay h3 {display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.poster-overlay p {-webkit-line-clamp:2;}

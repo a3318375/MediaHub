@@ -1,4 +1,4 @@
-import { useEffect,useState } from "react";
+import { useDiscovery } from '../../hooks/useDiscovery';
 
 import { Button,Card,Input,Tabs } from "@heroui/react";
 
@@ -8,10 +8,10 @@ ChevronLeft,
 ChevronRight,
 Film,
 RefreshCw,
-Search
+Search,
 } from "lucide-react";
 
-import { image,type Platform } from "../../lib/media-service";
+import { image } from "../../lib/media-service";
 
 import {
 commonGenres,
@@ -22,28 +22,24 @@ tvGenres,
 } from "../../lib/discovery-labels";
 
 import {
-readMediaSearchHistory,
-saveMediaSearchHistory,
+saveMediaSearchHistory
 } from "../../lib/resource-search";
 
 import { Field,SelectField } from "../../components/ui/ManagementUI";
 
 import type {
-MediaSummary,
-ProviderCapabilities
+MediaSummary
 } from "../../lib/media-contract";
 
 import {
-errorText,
 FilterTabs,
 kindLabels,
 PosterGrid,
 type API
 } from "../../components/media/MediaUI";
-import { charts,sources } from '../../lib/catalog-options';
-export { HomeRecommendations } from '../../components/media/HomeRecommendations';
-export { Detail } from './MediaDetail';
-
+import { charts,sources } from "../../lib/catalog-options";
+export { HomeRecommendations } from "../../components/media/HomeRecommendations";
+export { Detail } from "./MediaDetail";
 
 export function Discovery({
   ranking,
@@ -51,6 +47,7 @@ export function Discovery({
   demo,
   open,
   search: searchResource,
+  searchKeyword,
   subscribe,
 }: {
   ranking: boolean;
@@ -58,236 +55,97 @@ export function Discovery({
   demo: boolean;
   open: (m: MediaSummary) => void;
   search: (m: MediaSummary) => void;
+  searchKeyword: (keyword: string) => void;
   subscribe: (m: MediaSummary) => void;
 }) {
-  const [source, setSource] = useState("tmdb");
-  const [chart, setChart] = useState("movie_day");
-  const [type, setType] = useState("movie");
-  const [region, setRegion] = useState("US");
-  const [monetization, setMonetization] = useState("flatrate");
-  const [platformQuery, setPlatformQuery] = useState("");
-  const [platform, setPlatform] = useState("");
-  const [platforms, setPlatforms] = useState<Platform[]>([]);
-  const [platformError, setPlatformError] = useState("");
-  const [query, setQuery] = useState("");
-  const [search, setSearch] = useState("");
-  const [history, setHistory] = useState(() =>
-    readMediaSearchHistory(localStorage),
-  );
-  const [capabilities, setCapabilities] = useState<ProviderCapabilities[]>([]);
-  const [filters, setFilters] = useState<Record<string, string>>({});
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState<number | null>(null);
-  const [totalCapped, setTotalCapped] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const [items, setItems] = useState<MediaSummary[]>([]);
-  const [busy, setBusy] = useState(true);
-  const [error, setError] = useState("");
-  const [revision, setRevision] = useState(0);
-  const capability = capabilities.find((c) => c.source === source);
-  useEffect(() => {
-    if (demo) return;
-    let active = true;
-    api
-      .providers()
-      .then((r) => {
-        if (active) setCapabilities(r.providers);
-      })
-      .catch((e) => {
-        if (active) setError(errorText(e));
-      });
-    return () => {
-      active = false;
-    };
-  }, [api, demo]);
-  useEffect(() => {
-    if (!ranking) return;
-    let active = true;
-    setPlatformError("");
-    api
-      .platforms(type === "movie" ? "movie" : "tv", region)
-      .then((v) => {
-        if (active) {
-          setPlatforms(v);
-          setPlatform((current) =>
-            v.some((p) => String(p.id) === current)
-              ? current
-              : v[0]?.id.toString() || "",
-          );
-        }
-      })
-      .catch((e) => {
-        if (active) {
-          setPlatforms([]);
-          setPlatform("");
-          setPlatformError(errorText(e));
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [api, type, region, ranking]);
-  useEffect(() => {
-    let active = true;
-    setBusy(true);
-    setError("");
-    setItems([]);
-    if (source === "streaming" && !platform) {
-      setBusy(false);
-      return;
-    }
-    const name =
-      source === "streaming"
-        ? `platform_${type}_${region}_${platform}_${monetization}`
-        : chart;
-    const load = ranking
-      ? api.ranking(
-          source === "streaming" ? "tmdb" : source,
-          name,
-          revision > 0,
-        )
-      : api
-          .discover(
-            {
-              source,
-              mediaType: type,
-              query: search,
-              page: String(page),
-              pageSize: "20",
-              ...filters,
-            },
-            revision > 0,
-          )
-          .then((r) => {
-            if (active) {
-              setHasMore(r.hasMore);
-              setTotal(r.total);
-              setTotalCapped(r.totalCapped);
-            }
-            return r.items;
-          });
-    load
-      .then((v) => {
-        if (active)
-          setItems(
-            demo
-              ? v.filter((m) =>
-                  !ranking
-                    ? true
-                    : source === "anilist" || source === "bangumi"
-                      ? m.mediaType === "anime"
-                      : name.startsWith("tv") || name.includes("_tv_")
-                        ? m.mediaType === "tv"
-                        : m.mediaType === "movie",
-                )
-              : v,
-          );
-      })
-      .catch((e) => {
-        if (active) setError(errorText(e));
-      })
-      .finally(() => {
-        if (active) setBusy(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [
-    api,
-    source,
-    chart,
-    type,
-    region,
-    platform,
-    monetization,
-    search,
-    page,
-    filters,
-    ranking,
-    revision,
-    demo,
-  ]);
-  function chooseSource(id: string) {
-    setSource(id);
-    setChart(charts[id]?.[0][0] || "");
-    setPage(1);
-    setFilters({});
-    setSearch("");
-    setQuery("");
-    setType(id === "anilist" || id === "bangumi" ? "anime" : "movie");
-  }
-  const mediaTypes =
-    capability?.mediaTypes.filter((t) => t !== "person") ||
-    (source === "anilist" || source === "bangumi"
-      ? ["anime"]
-      : ["movie", "tv"]);
-  return (
+ const { source,setSource,chart,setChart,type,setType,region,setRegion,monetization,setMonetization,platformQuery,setPlatformQuery,platform,setPlatform,platforms,platformError,query,setQuery,search,setSearch,history,setHistory,filters,setFilters,page,setPage,total,totalCapped,hasMore,items,busy,error,setRevision,capability,capabilities,chooseSource,mediaTypes } = useDiscovery({ranking,api,demo,open,search: searchResource,subscribe});
+return (
     <>
-      {!ranking ? <Tabs className="discovery-source-tabs" aria-label="影视探索来源" selectedKey={source} onSelectionChange={key=>chooseSource(String(key))}>
-        <Tabs.ListContainer><Tabs.List aria-label="影视探索来源">{sources.map(([id,label])=><Tabs.Tab key={id} id={id}>{label}<Tabs.Indicator/></Tabs.Tab>)}</Tabs.List></Tabs.ListContainer>
-      </Tabs> : <div className="media-source-grid">
-        {sources.map(([id, label]) => (
-          <button
-            key={id}
-            onClick={() => chooseSource(id)}
-            className={`media-source ${source === id ? "selected" : ""}`}
-          >
-            <img src={`/icons/${id}.svg`} alt="" />
-            <span>
-              {label}
-              <small>
-                {id === "tmdb"
-                  ? "全球影视资料"
-                  : id === "douban"
-                    ? "华语口碑榜单"
-                    : "动画与番剧"}
-              </small>
-            </span>
-            {source === id && <Check size={16} />}
-          </button>
-        ))}
-        {ranking &&
-          platforms
-            .filter((p) => /netflix|disney|prime|apple|hbo|max/i.test(p.name))
-            .slice(0, 5)
-            .map((p) => (
-              <button
-                key={p.id}
-                className={`media-source ${source === "streaming" && platform === String(p.id) ? "selected" : ""}`}
-                onClick={() => {
-                  setSource("streaming");
-                  setPlatform(String(p.id));
-                  setType("movie");
-                }}
-              >
-                {p.logo ? (
-                  <img src={image(p.logo)} alt="" />
-                ) : (
-                  <span className="platform-letter">{p.name.slice(0, 1)}</span>
-                )}
-                <span>
-                  {p.name}
-                  <small>平台片库</small>
-                </span>
-              </button>
-            ))}
-        {ranking && (
-          <button
-            className={`media-source ${source === "streaming" ? "selected" : ""}`}
-            onClick={() => {
-              setSource("streaming");
-              setType("movie");
-            }}
-          >
-            <span className="platform-letter">
-              <Film size={22} />
-            </span>
-            <span>
-              更多平台<small>按地区查看</small>
-            </span>
-          </button>
-        )}
-      </div>}
+      {!ranking ? (
+        <Tabs
+          className="discovery-source-tabs"
+          aria-label="影视探索来源"
+          selectedKey={source}
+          onSelectionChange={(key) => chooseSource(String(key))}
+        >
+          <Tabs.ListContainer>
+            <Tabs.List aria-label="影视探索来源">
+              {sources.map(([id, label]) => (
+                <Tabs.Tab key={id} id={id} isDisabled={!demo && !capabilities.find(c => c.source === id)?.available}>
+                  {label}
+                  <Tabs.Indicator />
+                </Tabs.Tab>
+              ))}
+            </Tabs.List>
+          </Tabs.ListContainer>
+        </Tabs>
+      ) : (
+        <div className="media-source-grid">
+          {sources.map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => chooseSource(id)}
+              className={`media-source ${source === id ? "selected" : ""}`}
+            >
+              <img src={`/icons/${id}.svg`} alt="" />
+              <span>
+                {label}
+                <small>
+                  {id === "tmdb"
+                    ? "全球影视资料"
+                    : id === "douban"
+                      ? "华语口碑榜单"
+                      : "动画与番剧"}
+                </small>
+              </span>
+              {source === id && <Check size={16} />}
+            </button>
+          ))}
+          {ranking &&
+            platforms
+              .filter((p) => /^(Netflix|奈飞|奈菲|Disney\+|Disney Plus|Amazon Prime Video|Prime Video|HBO Max|Max|HBO|Apple TV(?:\+| Plus)?|Crunchyroll|Hulu|Amazon Video|Paramount\+|Peacock(?: Premium)?)$/i.test(p.name))
+              .slice(0, 10)
+              .map((p) => (
+                <button
+                  key={p.id}
+                  className={`media-source ${source === "streaming" && platform === String(p.id) ? "selected" : ""}`}
+                  onClick={() => {
+                    setSource("streaming");
+                    setPlatform(String(p.id));
+                    setType("tv");
+                  }}
+                >
+                  {p.logo ? (
+                    <img src={image(p.logo)} alt="" />
+                  ) : (
+                    <span className="platform-letter">
+                      {p.name.slice(0, 1)}
+                    </span>
+                  )}
+                  <span>
+                    {p.name}
+                    <small>平台片库</small>
+                  </span>
+                </button>
+              ))}
+          {ranking && (
+            <button
+              className={`media-source ${source === "streaming" ? "selected" : ""}`}
+              onClick={() => {
+                setSource("streaming");
+                setType("tv");
+              }}
+            >
+              <span className="platform-letter">
+                <Film size={22} />
+              </span>
+              <span>
+                更多平台<small>按地区查看</small>
+              </span>
+            </button>
+          )}
+        </div>
+      )}
       <Card className="media-filter-card">
         {source === "streaming" ? (
           <>
@@ -452,6 +310,7 @@ export function Discovery({
                 .map(([key, values]) => (
                   <FilterTabs
                     key={key}
+                    disabled={!!search}
                     label={
                       (
                         {
@@ -498,8 +357,8 @@ export function Discovery({
               className="media-query"
               onSubmit={(e) => {
                 e.preventDefault();
-                setSearch(query.trim());
-                setPage(1);
+                if (!query.trim() || (!demo && !capability?.supportsSearch)) return;
+                searchKeyword(query.trim());
                 if (query.trim())
                   setHistory(
                     saveMediaSearchHistory(localStorage, {
@@ -513,14 +372,17 @@ export function Discovery({
             >
               <Input
                 aria-label="搜索影视作品"
+                disabled={!demo && !capability?.supportsSearch}
                 placeholder="搜索作品名称…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
-              <Button type="submit">
+              <Button type="submit" isDisabled={!demo && !capability?.supportsSearch}>
                 <Search size={16} />
                 搜索
               </Button>
+              <Button variant="secondary" onPress={() => { setQuery(""); setSearch(""); setPage(1); }}>清空</Button>
+              <Button variant="secondary" onPress={() => { setFilters({}); setPage(1); }}>重置</Button>
             </form>
           </>
         )}
@@ -574,9 +436,11 @@ export function Discovery({
           open={open}
           search={searchResource}
           subscribe={subscribe}
-          ranking={ranking}
+          ranking={ranking && !(source === "bangumi" && chart === "airing")}
         />
       )}
+      {(source === "tmdb" || source === "streaming") && <p className="media-note">This product uses the TMDB API but is not endorsed or certified by TMDB.{source === "streaming" && <> 可观看性数据由 <a href="https://www.justwatch.com/" target="_blank" rel="noreferrer">JustWatch</a> 提供，片单按 TMDB 热度排序。</>}</p>}
+      {ranking && platformError && source !== "streaming" && <p className="media-note">平台入口暂不可用：{platformError}</p>}
       {!ranking && history.length > 0 && (
         <div className="search-history">
           <span>最近搜索</span>

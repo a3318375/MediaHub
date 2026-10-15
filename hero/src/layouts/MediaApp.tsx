@@ -671,6 +671,7 @@ export default function MediaApp() {
               .map((catalogPage) => (
                 <div key={catalogPage} hidden={page !== catalogPage}>
                   <Discovery
+                    searchKeyword={q => searchFor(q, null)}
                     search={m => searchFor(m.title, m)}
                     ranking={catalogPage === "rankings"}
                     api={api!}

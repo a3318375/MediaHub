@@ -2,6 +2,7 @@ import { Button,Tabs } from "@heroui/react";
 import { Clapperboard,Film,Heart,Plus,Search,Star } from "lucide-react";
 import { useEffect,useState,type ReactNode } from "react";
 import type { MediaSummary } from "../../lib/media-contract";
+import { formatRegion,presentTitle } from "../../lib/media-presentation";
 import { image,readSession,type service } from "../../lib/media-service";
 export type API = ReturnType<typeof service>;
 export const kindLabels: Record<string, string> = {
@@ -31,11 +32,13 @@ export function FilterTabs({
   value,
   options,
   onChange,
+  disabled = false,
 }: {
   label: string;
   value: string;
   options: string[][];
   onChange: (v: string) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="media-filter">
@@ -48,7 +51,7 @@ export function FilterTabs({
         <Tabs.ListContainer>
           <Tabs.List aria-label={label}>
             {options.map(([id, text]) => (
-              <Tabs.Tab key={id} id={id}>
+              <Tabs.Tab key={id} id={id} isDisabled={disabled}>
                 {text}
                 <Tabs.Indicator />
               </Tabs.Tab>
@@ -98,15 +101,16 @@ export function Poster({
   actions?: ReactNode;
 }) {
   const src = image(media.posterPath);
+  const { title } = presentTitle(media);
   return (
     <article className="poster-card">
       <div className={`poster-art palette-${index % 6}`}>
         {src ? (
-          <MediaImage src={src} alt={media.title} />
+          <MediaImage src={src} alt={title} />
         ) : (
           <div className="poster-placeholder">
             <Clapperboard size={24} />
-            <strong>{media.title}</strong>
+            <strong>{title}</strong>
           </div>
         )}
         <span className="poster-kind">
@@ -130,12 +134,13 @@ export function Poster({
               [
                 media.year,
                 kindLabels[media.mediaType],
-                media.originCountries?.join(" / ") || media.region,
+                formatRegion(media.originCountries, media.region),
+                ({tmdb:"TMDB",douban:"豆瓣",bangumi:"Bangumi",anilist:"AniList",emby:"Emby"})[media.provider],
               ]
                 .filter(Boolean)
                 .join(" · ")}
           </small>
-          <h3>{media.title}</h3>
+          <h3>{title}</h3>
           {media.overview && <p>{media.overview}</p>}
           <div className="poster-quick-actions">
             {onSearch && (
@@ -143,7 +148,7 @@ export function Poster({
                 isIconOnly
                 size="sm"
                 variant="ghost"
-                aria-label={`搜索《${media.title}》资源`}
+                aria-label={`搜索《${title}》资源`}
                 onPress={onSearch}
               >
                 <Search size={17} />
@@ -265,7 +270,7 @@ export function PosterGrid({
           media={m}
           index={i}
           onOpen={() => open(m)}
-          onSearch={search ? () => search(m) : undefined}
+          onSearch={search ? () => search({...m, title: presentTitle(m).title}) : undefined}
           onSubscribe={subscribe ? () => subscribe(m) : undefined}
           rank={ranking ? i + 1 : undefined}
           subscribed={subscribed.includes(m.sourceId)}
