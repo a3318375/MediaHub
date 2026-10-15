@@ -17,6 +17,7 @@ export function useDiscovery({
   subscribe: (m: MediaSummary) => void;
 }) {
   const [source, setSource] = useState("tmdb");
+  const [rankingFetchedAt, setRankingFetchedAt] = useState("");
   const [chart, setChart] = useState("movie_day");
   const [type, setType] = useState(ranking ? "tv" : "movie");
   const [region, setRegion] = useState("US");
@@ -124,6 +125,9 @@ export function useDiscovery({
           source === "streaming" ? "tmdb" : source,
           name,
           revision > 0,
+          (page) => {
+            if (active) setRankingFetchedAt(page?.fetchedAt || "");
+          },
         )
       : api
           .discover(
@@ -206,6 +210,7 @@ export function useDiscovery({
       : ["movie", "tv"]);
 
   return {
+    rankingFetchedAt,
     source,
     setSource,
     chart,

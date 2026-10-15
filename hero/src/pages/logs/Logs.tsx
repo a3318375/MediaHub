@@ -1,17 +1,17 @@
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 
-import { Button,Card,Chip } from "@heroui/react";
+import { Button, Card, Chip } from "@heroui/react";
 
 import {
-Field,
-Notice,
-SelectField,
-Toggle,
+  Field,
+  Notice,
+  SelectField,
+  Toggle,
 } from "../../components/ui/ManagementUI";
 
-import { Empty,errorText,time } from "../../components/media/MediaUI";
+import { Empty, errorText, time } from "../../components/media/MediaUI";
 
-import { getLogs,type LogEntry } from "../../lib/logs-api";
+import { getLogs, type LogEntry } from "../../lib/logs-api";
 
 import { type Session } from "../../lib/media-service";
 

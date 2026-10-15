@@ -33,7 +33,12 @@ import {
   PosterGrid,
   type API,
 } from "../../components/media/MediaUI";
-import { charts, sources } from "../../lib/catalog-options";
+import {
+  charts,
+  sources,
+  rankingDescriptions,
+  sourceLinks,
+} from "../../lib/catalog-options";
 export { HomeRecommendations } from "../../components/media/HomeRecommendations";
 export { Detail } from "./MediaDetail";
 
@@ -55,6 +60,7 @@ export function Discovery({
   subscribe: (m: MediaSummary) => void;
 }) {
   const {
+    rankingFetchedAt,
     source,
     setSource,
     chart,
@@ -485,6 +491,21 @@ export function Discovery({
           刷新
         </Button>
       </div>
+      {ranking && (
+        <p className="media-note">
+          {source === "streaming"
+            ? "按 TMDB 热度排序的地区可观看片单"
+            : rankingDescriptions[chart]}{" "}
+          {rankingFetchedAt &&
+            `· 更新于 ${new Date(rankingFetchedAt).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })} · 北京时间`}{" "}
+          ·{" "}
+          <a href={sourceLinks[source]} target="_blank" rel="noreferrer">
+            {source === "streaming"
+              ? "JustWatch"
+              : sources.find(([id]) => id === source)?.[1]}
+          </a>
+        </p>
+      )}
       {demo && (
         <p className="media-note">
           当前为本地示例资料，用于预览布局与交互；切换服务模式可查看真实来源数据。

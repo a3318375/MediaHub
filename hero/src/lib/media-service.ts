@@ -313,7 +313,12 @@ export function service(session: Session) {
             hasMore: false,
             total: demoMedia.length,
           } as MediaPage<MediaSummary>),
-    ranking: async (source: string, name: string, force = false) => {
+    ranking: async (
+      source: string,
+      name: string,
+      force = false,
+      onPage?: (page?: MediaPage<MediaSummary>) => void,
+    ) => {
       if (!live) return demoMedia;
       const result = await get<{
         rankings: {
@@ -326,6 +331,7 @@ export function service(session: Session) {
       const chart = result.rankings[0];
       if (!chart?.available || !chart.supported)
         throw new Error(chart?.message || "当前榜单不可用");
+      onPage?.(chart.result);
       return chart.result?.items || [];
     },
     platforms: (type: string, region: string) =>
