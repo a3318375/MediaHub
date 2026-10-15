@@ -6,8 +6,6 @@
 
 **项目正在持续开发，欢迎试用、反馈问题和参与二次开发。** 当前已提供基础业务功能，完整自动化流程和使用体验还在完善。
 
-![影视探索](docs/images/discover.png)
-
 ## 能做什么
 
 | 功能 | 你可以用它做什么 |
@@ -26,41 +24,27 @@
 
 ## 页面预览
 
-### 作品详情
+点击缩略图可打开原图查看。
 
-查看作品资料和主要演职员，直接搜索相关网盘资源。
+| 影视探索 | 作品详情 |
+| :---: | :---: |
+| [<img src="docs/images/discover.png" alt="影视探索" width="360">](docs/images/discover.png) | [<img src="docs/images/media-detail.png" alt="作品详情" width="360">](docs/images/media-detail.png) |
+| 浏览多来源影视与动漫作品 | 查看作品资料、演职员并搜索资源 |
 
-![作品详情](docs/images/media-detail.png)
+| 资源搜索 | 动漫订阅 |
+| :---: | :---: |
+| [<img src="docs/images/resource-search.png" alt="资源搜索" width="360">](docs/images/resource-search.png) | [<img src="docs/images/anime-subscriptions.png" alt="动漫订阅" width="360">](docs/images/anime-subscriptions.png) |
+| 聚合搜索网盘资源，按网盘分类查看 | 跟踪新集数，配置字幕组与匹配规则 |
 
-### 资源搜索
+| 中文业务日志 | 全局设置 |
+| :---: | :---: |
+| [<img src="docs/images/business-logs.png" alt="中文业务日志" width="360">](docs/images/business-logs.png) | [<img src="docs/images/settings.png" alt="全局设置" width="360">](docs/images/settings.png) |
+| 筛选、搜索和导出业务操作记录 | 统一管理服务连接、搜索来源和通知 |
 
-集中查看不同来源的搜索结果，按网盘分类查找所需资源。
-
-![资源搜索](docs/images/resource-search.png)
-
-### 动漫订阅
-
-把正在追的番剧放进订阅列表，查看资源更新情况，按自己的规则筛选集数。
-
-![动漫订阅](docs/images/anime-subscriptions.png)
-
-### 中文业务日志
-
-按时间查看业务操作和执行结果，方便了解自动任务做了什么。
-
-![业务日志](docs/images/business-logs.png)
-
-### 全局设置
-
-统一配置媒体服务、115 网盘、整理目录、搜索来源和通知参数。
-
-![全局设置](docs/images/settings.png)
-
-### 账号登录
-
-首次部署创建自己的管理员账号，之后使用该账号登录。
-
-![登录页面](docs/images/login.png)
+| 账号登录 |
+| :---: |
+| [<img src="docs/images/login.png" alt="账号登录" width="360">](docs/images/login.png) |
+| 首次部署创建管理员账号，之后使用该账号登录 |
 
 截图来自开发版本，部分页面仍显示旧名称 FRAME，界面和功能会随版本更新。
 
