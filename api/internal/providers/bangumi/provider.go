@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -145,8 +146,65 @@ func (p *Provider) Detail(ctx context.Context, kind, id, locale string) (media.D
 	return d, nil
 }
 func (p *Provider) Ranking(ctx context.Context, name string) (discovery.Page, error) {
+	if strings.HasPrefix(name, "airing:") {
+		return p.calendar(ctx, strings.TrimPrefix(name, "airing:"))
+	}
 	if name != "rank" {
 		return discovery.Page{}, discovery.Unsupported("ranking")
 	}
 	return p.Discover(ctx, discovery.Query{MediaType: "anime", Page: 1, PageSize: 20, Sort: "rank"})
+}
+
+func (p *Provider) calendar(ctx context.Context, date string) (discovery.Page, error) {
+	day, e := time.Parse("2006-01-02", date)
+	if e != nil {
+		return discovery.Page{}, discovery.Unsupported("date")
+	}
+	var raw []struct {
+		Weekday struct {
+			ID int `json:"id"`
+		} `json:"weekday"`
+		Items *[]struct {
+			record
+			AirDate string `json:"air_date"`
+		} `json:"items"`
+	}
+	if e = p.request(ctx, "GET", "/calendar", nil, nil, &raw); e != nil {
+		return discovery.Page{}, e
+	}
+	if raw == nil {
+		return discovery.Page{}, discovery.Invalid()
+	}
+	weekday := int(day.Weekday())
+	if weekday == 0 {
+		weekday = 7
+	}
+	page := discovery.Page{Items: []media.Summary{}, Source: "bangumi", Page: 1, PageSize: 100}
+	found := false
+	for _, group := range raw {
+		if group.Weekday.ID != weekday {
+			continue
+		}
+		if found || group.Items == nil {
+			return page, discovery.Invalid()
+		}
+		found = true
+		for _, r := range *group.Items {
+			r.Date = r.AirDate
+			if r.Type != 0 && r.Type != 2 {
+				continue
+			}
+			s, e := mapRecord(r.record)
+			if e != nil {
+				return page, e
+			}
+			page.Items = append(page.Items, s)
+		}
+	}
+	if !found {
+		return page, discovery.Invalid()
+	}
+	total := len(page.Items)
+	page.Total = &total
+	return page, nil
 }

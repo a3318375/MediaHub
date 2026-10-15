@@ -300,10 +300,11 @@ func (p *Provider) Detail(ctx context.Context, kind, id, locale string) (media.D
 	return media.Detail{Summary: s, Region: raw.Media.Country, Status: raw.Media.Status, Credits: []media.Credit{}}, e
 }
 func (p *Provider) Ranking(ctx context.Context, name string) (discovery.Page, error) {
-	if name != "popularity" {
+	sort, ok := map[string]string{"popularity": "POPULARITY_DESC", "trending": "TRENDING_DESC", "score": "SCORE_DESC"}[name]
+	if !ok {
 		return discovery.Page{}, discovery.Unsupported("ranking")
 	}
-	return p.discover(ctx, discovery.Query{MediaType: "anime", Page: 1, PageSize: 20}, "POPULARITY_DESC")
+	return p.discover(ctx, discovery.Query{MediaType: "anime", Page: 1, PageSize: 20}, sort)
 }
 
 // VerifyCapabilities lazily probes only native sort enums. Successful queries unlock the

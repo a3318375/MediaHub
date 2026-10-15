@@ -41,9 +41,7 @@
 | [<img src="docs/images/discover.png" alt="影视探索" width="360">](docs/images/discover.png) | [<img src="docs/images/media-detail.png" alt="作品详情" width="360">](docs/images/media-detail.png) |
 | 浏览多来源影视与动漫作品 | 查看作品资料、演职员并搜索资源 |
 
-| 资源搜索 | 电视剧订阅 | 从 TMDB 电视剧卡片或详情订阅指定季，可互斥选择直接 TG 频道或 PanSou；按播出日搜索，未找到每天补查，找到后等待下一集，可设置资源正则，优先选择 115 分享，其次磁力，同类取标注体积最大的资源 |
-| 追剧日历 | 按北京时间查看订阅剧集的播出日期、资源命中情况，支持暂停、规则编辑与手动检查 |
-| 动漫订阅 |
+| 资源搜索 | 动漫订阅 |
 | :---: | :---: |
 | [<img src="docs/images/resource-search.png" alt="资源搜索" width="360">](docs/images/resource-search.png) | [<img src="docs/images/anime-subscriptions.png" alt="动漫订阅" width="360">](docs/images/anime-subscriptions.png) |
 | 聚合搜索网盘资源，按网盘分类查看 | 跟踪新集数，配置字幕组与匹配规则 |
@@ -94,6 +92,29 @@ docker compose up -d
 
 账号、订阅、任务、配置和加密密钥都保存在挂载的 `./data` 中。升级或迁移时保留整个目录，不要只复制数据库；两个实例不要同时使用同一个数据目录。
 
+### 电视剧订阅
+
+从 TMDB 电视剧卡片或详情订阅指定季，选择一种资源来源：
+
+- **TG 频道**：填写公开频道用户名或 `https://t.me/频道名`，直接搜索公开消息，支持有界历史翻页；不通过 PanSou，也不在失败时自动回退。当前不接入私有频道账号。
+- **PanSou**：使用全局搜索来源设置，不使用订阅专用频道。切换来源会清除原来源候选并重新检查。
+
+系统按北京时间和 TMDB 本季播出日期检索资源：到期缺集每天补查，找到后等待下一集；日期未知时每日补查，全部命中后仍低频检查排期变化。调度和候选持久化保存，重启不会重置为高频搜索。
+
+资源优先选择 115 分享，其次磁力，同类按文本声明体积择优。`更05集`、`全8集` 等表示合集声明范围，日历命中不代表文件已核验或下载完成；合集下载仍需通过公共流程选择文件。
+
+### 榜单推荐
+
+通过来源网站图标选择榜单，作品统一展示为海报卡片，可打开详情、搜索资源或订阅电视剧。Netflix、Disney+、Prime Video 等常用平台在当前地区可用时直接显示为一级图标入口，其余平台可从“更多平台”选择。
+
+- TMDB：电影与剧集的今日/本周趋势、热门、高分，以及正在/即将上映电影、今日/近期播出剧集。
+- 豆瓣：电影 Top 250、热门剧集。
+- AniList：人气、趋势与高分动画。
+- Bangumi：动画排名、按北京时间选择当日星期的放送表。
+- 流媒体：按地区读取 TMDB 平台列表与网站图标，支持电影/剧集及订阅、免费、含广告、租借、购买筛选；作品按 TMDB 热度排序，可观看性数据来自 JustWatch。
+
+榜单目前展示前 20 部作品，今日放送展示当日条目。榜单服务端缓存 1 小时，放送表缓存 30 分钟并按日期隔离，平台列表按地区和内容类型缓存 24 小时；页面内切换复用 5 分钟缓存。缓存仍使用现有内存机制，重启后重新获取。重新读取会复用有效的服务端缓存。
+
 ### 更新版本
 
 ```sh
@@ -107,18 +128,34 @@ docker compose up -d
 
 - **Telegram 通知**：配置保存和消息发送已经验证，正在接入下载、转存、整理完成或失败的自动通知，以及页面测试入口。
 - **115 操作体验**：优化目录选择速度，减少重复读取和等待，继续完善状态提示。
-- **自动化流程验证**：下载、转存和整理已有实现，持续验证真实资源、失败恢复、目录冲突和空目录清理等情况。
-- **追剧识别与界面完善**：追剧日历已接入电视剧订阅；继续完善集数识别、合集处理和资源体积判断，逐步统一 MediaHub 品牌与页面文案。
+- **界面完善**：逐步统一 MediaHub 品牌与页面文案。
 
 设置页面出现某个选项，不代表对应功能已完整接入。当前以实际可执行的业务流程为准，开发进度会继续更新。
 
 ## 参与开发
+
+### HeroUI 独立前端原型
+
+`hero/` 是独立的 Vite + React + TypeScript + HeroUI v3 项目，参考 [HeroUI Dashboard 模板](https://heroui.com/en/themes?template=dashboard) 还原侧栏、指标卡、图表和员工表格，另提供同风格登录页。使用本地模拟数据与浏览器存储，无需启动后端；字体和头像也已保存在项目内。
+
+后续业务界面以 `hero/` 的 HeroUI 框架继续开发，逐步迁入影视探索、榜单推荐、资源搜索、电视剧订阅与追剧日历等现有功能。保留独立运行与模拟数据预览能力，业务接口沿用现有 Go 后端契约。
+
+```sh
+cd hero
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+访问 `http://127.0.0.1:5174/`。点击 **Use demo account** 填入账号，再点击 **Sign in**；演示账号为 `kate@acme.com`，密码为 `heroui123`。支持记住登录、退出、浅色/暗色主题、图表周期切换、员工搜索/筛选/排序/分页、成员查看/编辑/增删及 CSV 导出。邀请只在本地增加成员，不发送邮件。`pnpm build` 执行类型检查并生成静态产物。
+
+### 现有应用
 
 前后端放在同一个仓库，方便一起修改和构建：
 
 ```text
 MediaHub/
 ├── web/                  # React 前端
+├── hero/                 # HeroUI 新前端与独立原型
 ├── api/                  # Go 后端
 │   └── third_party/pansou/ # PanSou 子模块
 ├── docs/                 # 项目文档与 README 截图
@@ -161,3 +198,5 @@ docker run --rm -p 5175:18080 -v mediahub-test-data:/data mediahub:local
 ## 致谢
 
 资源搜索基于 [PanSou](https://github.com/fish2018/pansou)，项目通过固定版本的 fork 子模块集成。115 接口适配使用 [115driver](https://github.com/SheltonZhu/115driver)，前端使用 React、Vite 和 shadcn/ui。
+
+TMDB、豆瓣与 AniList 图标来自 [Simple Icons](https://simpleicons.org/)，Bangumi 图标来自其[官方客户端仓库](https://github.com/bangumi/Bangumi-iOS)。品牌标识归各自所有。

@@ -84,6 +84,7 @@ func NewRouterWithOrganizer(db *store.Store, updater *animesync.Updater, downloa
 	router.GET("/api/emby/items/:id/image", api.requireUser(), api.embyImage)
 	router.GET("/api/media/providers", api.requireUser(), api.mediaProviders)
 	router.GET("/api/media/rankings", api.requireUser(), api.mediaRankings)
+	router.GET("/api/media/rankings/platforms", api.requireUser(), api.rankingPlatforms)
 	router.GET("/api/media/image", api.requireUser(), api.mediaImage)
 	router.GET("/api/media/discover", api.requireUser(), api.discoverMedia)
 	router.GET("/api/media/:source/:sourceId", api.requireUser(), api.detailMedia)

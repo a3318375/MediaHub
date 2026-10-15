@@ -1,22 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import {
-  FilmIcon,
-  RotateCwIcon,
-  SearchIcon,
-  SparklesIcon,
-  UsersIcon,
-} from "lucide-react"
+import { FilmIcon, RotateCwIcon, SearchIcon, SparklesIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
@@ -49,9 +37,8 @@ const sourceTabLabels: Record<string, string> = {
   douban: "豆瓣",
   anilist: "AniList 动漫",
   bangumi: "Bangumi 动漫",
-  people: "热门演员",
 }
-const sourceTabOrder = ["tmdb", "douban", "anilist", "bangumi", "people"]
+const sourceTabOrder = ["tmdb", "douban", "anilist", "bangumi"]
 
 /** 界面标签：上游枚举与类型 ID 统一映射成中文，未知值原样显示。 */
 const optionLabels: Record<string, string> = {
@@ -243,10 +230,7 @@ export function DiscoverExplorePage({
   const listRequest = useRef<AbortController | null>(null)
   const detailRequest = useRef<AbortController | null>(null)
   const openMediaDetail = useMediaDetail()
-  const peopleTab = tab === "people"
-  const provider = peopleTab
-    ? undefined
-    : providers.find((entry) => entry.source === tab)
+  const provider = providers.find((entry) => entry.source === tab)
   const activeMediaType =
     provider?.mediaTypes.find((type) => type === mediaType) ??
     provider?.mediaTypes[0] ??
@@ -264,12 +248,6 @@ export function DiscoverExplorePage({
           disabled: !entry.available,
           reason: entry.unavailableReason,
         })),
-      {
-        id: "people",
-        label: sourceTabLabels.people,
-        disabled: false,
-        reason: undefined as string | undefined,
-      },
     ],
     [providers]
   )
@@ -282,14 +260,12 @@ export function DiscoverExplorePage({
         if (controller.signal.aborted) return
         setProviders(data.providers)
         setTab((current) =>
-          current === "people"
+          data.providers.some(
+            (entry) => entry.source === current && entry.available
+          )
             ? current
-            : data.providers.some(
-                  (entry) => entry.source === current && entry.available
-                )
-              ? current
-              : (data.providers.find((entry) => entry.available)?.source ??
-                "tmdb")
+            : (data.providers.find((entry) => entry.available)?.source ??
+              "tmdb")
         )
         if (!data.providers.some((entry) => entry.available)) {
           const reason = data.providers[0]?.unavailableReason ?? ""
@@ -361,9 +337,7 @@ export function DiscoverExplorePage({
   }, [provider, activeMediaType, filters, query, page])
 
   const items = result?.items ?? []
-  const sourceInfo = peopleTab
-    ? sourceTabLabels.people
-    : (sourceTabLabels[tab] ?? provider?.label ?? tab)
+  const sourceInfo = sourceTabLabels[tab] ?? provider?.label ?? tab
 
   /** TMDB 类型按媒体类型分组，保持原有中文顺序。 */
   const genreOptions = useMemo(() => {
@@ -411,8 +385,6 @@ export function DiscoverExplorePage({
     if (!value) return
     changed()
     setTab(value)
-    // 演员页签没有数据源请求，别让它停在加载态。
-    setLoading(value !== "people")
     setMediaType("")
     setFilters({})
     setQuery("")
@@ -483,20 +455,14 @@ export function DiscoverExplorePage({
   return (
     <div className="flex flex-col gap-4 p-4 sm:gap-5 sm:p-6 lg:p-7">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm">
-        <p className="text-muted-foreground">
-          按来源探索电影、剧集、动画与演职人员。
-        </p>
+        <p className="text-muted-foreground">按来源探索电影、剧集与动画。</p>
         <div className="flex items-center gap-3">
           <Badge variant="outline" className="gap-1.5 font-normal">
             <SparklesIcon />
             {sourceInfo}
           </Badge>
           <span className="text-xs text-muted-foreground">
-            {peopleTab
-              ? "人物数据未接入"
-              : loading && !result
-                ? "读取中"
-                : `${items.length} 部作品`}
+            {loading && !result ? "读取中" : `${items.length} 部作品`}
           </span>
         </div>
       </div>
@@ -547,11 +513,9 @@ export function DiscoverExplorePage({
                   value={queryDraft}
                   onChange={(event) => setQueryDraft(event.target.value)}
                   placeholder={
-                    peopleTab
-                      ? "人物数据未接入"
-                      : provider?.supportsSearch
-                        ? "输入片名，按 Enter 搜索"
-                        : "该数据源不支持搜索"
+                    provider?.supportsSearch
+                      ? "输入片名，按 Enter 搜索"
+                      : "该数据源不支持搜索"
                   }
                   disabled={!provider?.supportsSearch}
                   maxLength={200}
@@ -579,7 +543,6 @@ export function DiscoverExplorePage({
                 variant="outline"
                 size="lg"
                 onClick={resetFilters}
-                disabled={peopleTab}
               >
                 重置
               </Button>
@@ -633,7 +596,7 @@ export function DiscoverExplorePage({
             </div>
           )}
 
-          {provider && !peopleTab && (
+          {provider && (
             <div className="mt-3 border-t border-border/70 pt-2">
               {mediaTypeOptions.length > 0 && (
                 <FilterRow
@@ -712,115 +675,92 @@ export function DiscoverExplorePage({
         </Alert>
       )}
 
-      {peopleTab ? (
-        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-card to-muted/40 shadow-none">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UsersIcon className="size-4 text-primary" />
-              热门演员
-            </CardTitle>
-            <CardDescription>
-              人物接口尚未接入，因此不展示任何人物数据（不使用演示数据）。
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex min-h-56 flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-muted/20 px-6 text-center">
-              <UsersIcon className="size-6 text-muted-foreground" />
-              <p className="text-sm font-medium">真实人物数据未接入</p>
-              <p className="text-xs text-muted-foreground">
-                需要新增人物 Provider（TMDB 人物 / Bangumi 人物）后启用。
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          {query && (
-            <p className="text-xs text-muted-foreground">
-              标题搜索仅发送媒体类型与搜索词；清空搜索后可使用筛选。
-            </p>
-          )}
+      <>
+        {query && (
+          <p className="text-xs text-muted-foreground">
+            标题搜索仅发送媒体类型与搜索词；清空搜索后可使用筛选。
+          </p>
+        )}
 
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
-                {sourceInfo}
-              </p>
-              <h3 className="mt-1 text-lg font-semibold tracking-tight">
-                {query ? `“${query}”的搜索结果` : "为你发现"}
-              </h3>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="secondary">
-                第 {result?.page ?? page} 页 · {items.length} 部
-                {result
-                  ? formatResultTotal(result.total, result.totalCapped)
-                  : ""}
-              </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={loading || page <= 1}
-                onClick={() => changed(page - 1)}
-              >
-                上一页
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={loading || !result?.hasMore}
-                onClick={() => changed(page + 1)}
-              >
-                下一页
-              </Button>
-            </div>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
+              {sourceInfo}
+            </p>
+            <h3 className="mt-1 text-lg font-semibold tracking-tight">
+              {query ? `“${query}”的搜索结果` : "为你发现"}
+            </h3>
           </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">
+              第 {result?.page ?? page} 页 · {items.length} 部
+              {result
+                ? formatResultTotal(result.total, result.totalCapped)
+                : ""}
+            </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loading || page <= 1}
+              onClick={() => changed(page - 1)}
+            >
+              上一页
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={loading || !result?.hasMore}
+              onClick={() => changed(page + 1)}
+            >
+              下一页
+            </Button>
+          </div>
+        </div>
 
-          {loading && !result ? (
-            <p role="status">正在读取{sourceInfo}…</p>
-          ) : items.length ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9">
-              {items.map((item) => (
-                <MediaPosterCard
-                  key={item.mediaId}
-                  item={item}
-                  sourceLabel={sourceTabLabels[item.provider] ?? item.provider}
-                  onOpen={() => void open(item)}
-                  onResourceSearch={(keyword) =>
-                    onResourceSearch(keyword, mediaContextFromRecord(item))
-                  }
-                  className="w-full sm:w-full"
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex min-h-56 flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-muted/20 px-6 text-center">
-              <FilmIcon className="size-6 text-muted-foreground" />
-              <p className="text-sm font-medium">没有找到符合条件的作品</p>
-              <p className="text-xs text-muted-foreground">
-                试试移除部分筛选条件，或换一个来源。
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  resetFilters()
-                  clearSearch()
-                }}
-              >
-                清空筛选
-              </Button>
-            </div>
-          )}
-
-          {tab === "tmdb" && (
+        {loading && !result ? (
+          <p role="status">正在读取{sourceInfo}…</p>
+        ) : items.length ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-9">
+            {items.map((item) => (
+              <MediaPosterCard
+                key={item.mediaId}
+                item={item}
+                sourceLabel={sourceTabLabels[item.provider] ?? item.provider}
+                onOpen={() => void open(item)}
+                onResourceSearch={(keyword) =>
+                  onResourceSearch(keyword, mediaContextFromRecord(item))
+                }
+                className="w-full sm:w-full"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="flex min-h-56 flex-col items-center justify-center gap-2 rounded-xl border border-dashed bg-muted/20 px-6 text-center">
+            <FilmIcon className="size-6 text-muted-foreground" />
+            <p className="text-sm font-medium">没有找到符合条件的作品</p>
             <p className="text-xs text-muted-foreground">
-              This product uses the TMDB API but is not endorsed or certified by
-              TMDB.
+              试试移除部分筛选条件，或换一个来源。
             </p>
-          )}
-        </>
-      )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                resetFilters()
+                clearSearch()
+              }}
+            >
+              清空筛选
+            </Button>
+          </div>
+        )}
+
+        {tab === "tmdb" && (
+          <p className="text-xs text-muted-foreground">
+            This product uses the TMDB API but is not endorsed or certified by
+            TMDB.
+          </p>
+        )}
+      </>
     </div>
   )
 }

@@ -120,8 +120,19 @@ export const mediaApi = {
   },
   fetchDetail: fetchDetailRequest,
   detail: fetchDetailRequest,
-  rankings(signal?: AbortSignal) {
-    return request<RankingsResponse>("/api/media/rankings", { signal })
+  rankings(signal?: AbortSignal, source?: string, name?: string) {
+    const params = new URLSearchParams()
+    if (source) params.set("source", source)
+    if (name) params.set("name", name)
+    return request<RankingsResponse>(`/api/media/rankings?${params}`, {
+      signal,
+    })
+  },
+  rankingPlatforms(mediaType: string, region: string, signal?: AbortSignal) {
+    return request<{ items: { id: number; name: string; logo: string }[] }>(
+      `/api/media/rankings/platforms?${new URLSearchParams({ mediaType, region })}`,
+      { signal }
+    )
   },
   animeSubscriptions() {
     return request<AnimeSubscription[]>("/api/subscriptions/anime")

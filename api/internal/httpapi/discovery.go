@@ -209,8 +209,15 @@ type rankingDTO struct {
 }
 
 func (a *API) mediaRankings(c *gin.Context) {
-	if len(c.Request.URL.Query()) > 0 {
-		mediaFailure(c, discovery.Unsupported("榜单筛选"))
+	selected := len(c.Request.URL.Query()) > 0
+	for k, v := range c.Request.URL.Query() {
+		if (k != "source" && k != "name") || len(v) != 1 {
+			mediaFailure(c, discovery.Unsupported("榜单筛选"))
+			return
+		}
+	}
+	if selected && (c.Query("source") == "" || c.Query("name") == "" || len(c.Query("name")) > 100) {
+		mediaFailure(c, discovery.Unsupported("source/name"))
 		return
 	}
 	service := a.discoveryService()
@@ -224,6 +231,10 @@ func (a *API) mediaRankings(c *gin.Context) {
 		err   error
 	}
 	defs := [][2]string{{"tmdb", "trending"}, {"douban", "movie_top250"}, {"douban", "tv_hot"}, {"bangumi", "rank"}, {"anilist", "popularity"}}
+	if selected {
+		defs = [][2]string{{c.Query("source"), c.Query("name")}}
+		out = []rankingDTO{}
+	}
 	ch := make(chan result, len(defs))
 	for i, def := range defs {
 		go func(i int, def [2]string) {
@@ -235,6 +246,10 @@ func (a *API) mediaRankings(c *gin.Context) {
 	available := false
 	for range defs {
 		r := <-ch
+		if selected && r.err != nil {
+			mediaFailure(c, r.err)
+			return
+		}
 		def := defs[r.index]
 		d := rankingDTO{Source: def[0], Name: def[1], Supported: true}
 		if r.err == nil {
@@ -274,4 +289,27 @@ func (a *API) readTMDBKey() (string, error) {
 		}
 	}
 	return key, err
+}
+
+func (a *API) rankingPlatforms(c *gin.Context) {
+	for k, v := range c.Request.URL.Query() {
+		if (k != "mediaType" && k != "region") || len(v) != 1 {
+			mediaFailure(c, discovery.Unsupported("平台筛选"))
+			return
+		}
+	}
+	kind, region := c.Query("mediaType"), c.Query("region")
+	if (kind != "movie" && kind != "tv") || len(region) != 2 || region[0] < 'A' || region[0] > 'Z' || region[1] < 'A' || region[1] > 'Z' {
+		mediaFailure(c, discovery.Unsupported("mediaType/region"))
+		return
+	}
+	if _, ok := a.mediaKey(c); !ok {
+		return
+	}
+	items, e := a.discoveryService().Platforms(c.Request.Context(), kind, region)
+	if e != nil {
+		mediaFailure(c, e)
+		return
+	}
+	c.JSON(200, gin.H{"items": items})
 }

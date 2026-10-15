@@ -88,7 +88,7 @@ func TestNewMediaRoutesRequireUser(t *testing.T) {
 	if wSearch.Code != 401 {
 		t.Fatal(wSearch.Code)
 	}
-	for _, path := range []string{"/api/media/providers", "/api/media/rankings", "/api/media/image?source=douban&url=https://img1.doubanio.com/a.jpg", "/api/media/discover?source=bangumi&mediaType=anime", "/api/media/anilist/9253?mediaType=anime"} {
+	for _, path := range []string{"/api/media/providers", "/api/media/rankings", "/api/media/rankings/platforms?mediaType=tv&region=US", "/api/media/image?source=douban&url=https://img1.doubanio.com/a.jpg", "/api/media/discover?source=bangumi&mediaType=anime", "/api/media/anilist/9253?mediaType=anime"} {
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, httptest.NewRequest("GET", path, nil))
 		if w.Code != 401 {
