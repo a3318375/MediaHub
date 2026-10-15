@@ -44,7 +44,7 @@ afterEach(() => {
   storage.clear();
 });
 
-function fixture(result) {
+function fixture(result, status = 200) {
   storage.set(
     "mediahub.hero.session",
     JSON.stringify({ mode: "live", name: "test", token: "test-token" }),
@@ -57,7 +57,7 @@ function fixture(result) {
       method: init.method ?? "GET",
       body: init.body ? JSON.parse(init.body) : undefined,
     });
-    return Response.json(result);
+    return Response.json(result, { status });
   };
   return calls;
 }
@@ -244,4 +244,85 @@ test("Go null collection fields normalize before subscription rendering", () => 
     "standby",
   ])
     assert.deepEqual(result[field], []);
+});
+
+const { mergeResourceResults, transferSearchResource } =
+  await load("resource-workflow");
+test("incremental search keeps earlier clouds, removes empty tabs, deduplicates items and accepts updated link metadata", () => {
+  const first = {
+    total: 1,
+    items: [{ title: "older", links: [{ url: "https://115.com/s/test1234" }] }],
+    linksByCloud: {
+      115: [
+        { cloud: "115", url: "https://115.com/s/test1234", password: "old" },
+      ],
+      baidu: [],
+    },
+  };
+  const incoming = {
+    total: 2,
+    items: [
+      { title: "updated", links: [{ url: "https://115.com/s/test1234" }] },
+    ],
+    linksByCloud: {
+      115: [
+        { cloud: "115", url: "https://115.com/s/test1234", password: "new" },
+      ],
+      magnet: [{ cloud: "magnet", url: "magnet:?xt=urn:btih:test" }],
+    },
+  };
+  const merged = mergeResourceResults(first, incoming);
+  assert.equal(merged.total, 2);
+  assert.deepEqual(Object.keys(merged.linksByCloud), ["115", "magnet"]);
+  assert.equal(merged.linksByCloud["115"][0].password, "new");
+  assert.deepEqual(
+    merged.items.map((i) => i.title),
+    ["updated"],
+  );
+  assert.equal(first.linksByCloud["115"][0].password, "old");
+});
+test("one-click search transfer submits the entire 115 share using global directories and exact media identity", async () => {
+  const calls = fixture({ task: { id: "transfer-task" }, created: true });
+  await transferSearchResource(
+    { cloud: "115", url: "https://115.com/s/test1234", password: "abcd" },
+    "Fallback",
+    { provider: "bangumi", providerId: "100", type: "anime", title: "Anime" },
+  );
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].body, {
+    kind: "share_transfer",
+    wholeShare: true,
+    receiveCode: "abcd",
+    url: "https://115.com/s/test1234",
+    directoryId: "",
+    reference: {
+      source: "media_search",
+      sourceId: "bangumi:anime:100",
+      media: {
+        provider: "bangumi",
+        providerId: "100",
+        type: "anime",
+        title: "Anime",
+      },
+    },
+  });
+});
+test("one-click download refuses unsupported cloud links and exposes server errors", async () => {
+  const calls = fixture({ message: "请先配置 115" }, 503);
+  assert.throws(
+    () =>
+      transferSearchResource(
+        { cloud: "baidu", url: "https://pan.baidu.com/s/test" },
+        "Test",
+      ),
+    /只支持/,
+  );
+  assert.equal(calls.length, 0);
+  await assert.rejects(
+    transferSearchResource(
+      { cloud: "115", url: "https://115.com/s/test1234" },
+      "Test",
+    ),
+    /请先配置 115/,
+  );
 });

@@ -219,3 +219,29 @@ test("merged PanSou results tolerate omitted items and empty cloud maps", () => 
   assert.deepEqual(r.items, []);
   assert.equal(r.linksByCloud.magnet.length, 1);
 });
+
+test("request cancellation reaches fetch and cannot leave a pending search after navigation", async () => {
+  const controller = new AbortController();
+  let observed;
+  globalThis.fetch = async (_url, init) => {
+    observed = init.signal;
+    return new Promise((_resolve, reject) =>
+      init.signal.addEventListener(
+        "abort",
+        () => reject(new DOMException("Aborted", "AbortError")),
+        { once: true },
+      ),
+    );
+  };
+  const result = api.request(
+    "/api/v1/resources/search",
+    { mode: "live", name: "test", token: "test" },
+    "POST",
+    { query: "test" },
+    30_000,
+    controller.signal,
+  );
+  controller.abort();
+  await assert.rejects(result, (e) => e.name === "AbortError");
+  assert.equal(observed.aborted, true);
+});

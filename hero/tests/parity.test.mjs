@@ -12,8 +12,9 @@ async function load(path) {
     `data:text/javascript;base64,${Buffer.from(js).toString("base64")}`
   );
 }
-const { navigationItems, settingsTabs, resolvePage } =
-  await load("../src/lib/parity.ts");
+const { navigationItems, settingsTabs, resolvePage } = await load(
+  "../src/lib/parity.ts",
+);
 
 test("HeroUI navigation follows the current shadcn menu, including removed entries", async () => {
   const original = await readFile(
