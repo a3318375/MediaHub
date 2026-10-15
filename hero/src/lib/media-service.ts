@@ -129,8 +129,12 @@ export async function request<T>(
   method = "GET",
   body?: unknown,
   timeoutMs = 30_000,
+  signal?: AbortSignal,
 ): Promise<T> {
   const controller = new AbortController();
+  const abort = () => controller.abort();
+  if (signal?.aborted) controller.abort();
+  signal?.addEventListener("abort", abort, { once: true });
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(path, {
@@ -157,6 +161,7 @@ export async function request<T>(
     return data as T;
   } finally {
     clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
   }
 }
 export function image(path?: string | null) {

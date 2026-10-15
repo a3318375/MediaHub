@@ -1,32 +1,18 @@
 import { Button,Tabs } from "@heroui/react";
+
 import { Clapperboard,Film,Heart,Plus,Search,Star } from "lucide-react";
+
 import { useEffect,useState,type ReactNode } from "react";
+
 import type { MediaSummary } from "../../lib/media-contract";
+
 import { formatRegion,presentTitle } from "../../lib/media-presentation";
-import { image,readSession,type service } from "../../lib/media-service";
-export type API = ReturnType<typeof service>;
-export const kindLabels: Record<string, string> = {
-  movie: "电影",
-  tv: "剧集",
-  anime: "动画",
-  documentary: "纪录片",
-};
-export function errorText(e: unknown) {
-  return e instanceof Error ? e.message : "请求失败，请重试";
-}
-export function dateCN(date: Date) {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Shanghai",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-}
-export function time(value: string) {
-  return value
-    ? new Date(value).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })
-    : "尚未检查";
-}
+
+import { kindLabels } from '../../lib/formatters';
+import { image,readSession } from "../../lib/media-service";
+export type { API } from '../../lib/formatters';
+export { dateCN,errorText,kindLabels,time } from '../../lib/formatters';
+
 export function FilterTabs({
   label,
   value,
@@ -62,6 +48,7 @@ export function FilterTabs({
     </div>
   );
 }
+
 export function Empty({
   children,
   action,
@@ -77,6 +64,7 @@ export function Empty({
     </div>
   );
 }
+
 export function Poster({
   media,
   index = 0,
@@ -189,6 +177,7 @@ export function Poster({
     </article>
   );
 }
+
 export function MediaImage({
   src,
   alt,
@@ -247,6 +236,7 @@ export function MediaImage({
     </div>
   );
 }
+
 export function PosterGrid({
   items,
   open,
