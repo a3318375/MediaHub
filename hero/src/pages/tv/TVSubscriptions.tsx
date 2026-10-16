@@ -70,7 +70,7 @@ export function TVList({
                 <div>
                   <h2>{s.title}</h2>
                   <p>
-                    第 {s.season} 季 ·{" "}
+                    {s.season === 0 ? "全部季度" : `第 ${s.season} 季`} ·{" "}
                     {s.source === "tg" ? "TG 频道" : "PanSou"}
                   </p>
                   <Chip
@@ -115,7 +115,7 @@ export function TVList({
                         target="_blank"
                         rel="noreferrer"
                       >
-                        E{r.episode}
+                        S{String(r.season || s.season || 1).padStart(2, "0")}E{r.episode}
                         {r.collectionEnd ? `–${r.collectionEnd}` : ""} ·{" "}
                         {r.title} · {r.cloud === "115" ? "115 分享" : "磁力"} ·{" "}
                         {(r.size || 0) > 0

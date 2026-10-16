@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { charts } from "../lib/catalog-options";
 import { errorText, type API } from "../lib/formatters";
 import type { MediaSummary, ProviderCapabilities } from "../lib/media-contract";
@@ -41,12 +41,20 @@ export function useDiscovery({
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
+  const [retry, setRetry] = useState(0);
+  const resultKey = useRef("");
+  const loadingPage = useRef(false);
   const capability = capabilities.find((c) => c.source === source);
+  useEffect(() => {
+    const refresh = () => setRevision((value) => value + 1);
+    window.addEventListener("mediahub-settings-saved", refresh);
+    return () => window.removeEventListener("mediahub-settings-saved", refresh);
+  }, []);
   useEffect(() => {
     if (demo) return;
     let active = true;
     api
-      .providers()
+      .providers(revision > 0)
       .then((r) => {
         if (!active) return;
         setCapabilities(r.providers);
@@ -111,7 +119,22 @@ export function useDiscovery({
     let active = true;
     setBusy(true);
     setError("");
-    setItems([]);
+    const key = JSON.stringify([source, type, search, filters, revision]);
+    const changed = !ranking && resultKey.current !== key;
+    if (ranking || changed) {
+      const hadResults = !!resultKey.current;
+      resultKey.current = key;
+      setItems([]);
+      setTotal(null);
+      setTotalCapped(false);
+      setHasMore(false);
+      if (!ranking) {
+        setPage(1);
+        if (hadResults) window.scrollTo({top: 0});
+        if (page !== 1) return;
+      }
+    }
+    loadingPage.current = true;
     if (source === "streaming" && !platform) {
       setBusy(false);
       return;
@@ -152,8 +175,8 @@ export function useDiscovery({
     load
       .then((v) => {
         if (active)
-          setItems(
-            demo
+          setItems((previous) => {
+            const incoming = demo
               ? v.filter((m) =>
                   !ranking
                     ? true
@@ -163,14 +186,17 @@ export function useDiscovery({
                         ? m.mediaType === "tv"
                         : m.mediaType === "movie",
                 )
-              : v,
-          );
+              : v;
+            if (ranking || page === 1) return incoming;
+            const seen = new Set(previous.map((m) => m.mediaId));
+            return [...previous, ...incoming.filter((m) => { if (seen.has(m.mediaId)) return false; seen.add(m.mediaId); return true; })];
+          });
       })
       .catch((e) => {
         if (active) setError(errorText(e));
       })
       .finally(() => {
-        if (active) setBusy(false);
+        if (active) { setBusy(false); loadingPage.current = false; }
       });
     return () => {
       active = false;
@@ -190,6 +216,7 @@ export function useDiscovery({
     revision,
     demo,
     capability,
+    retry,
   ]);
   function chooseSource(id: string) {
     setSource(id);
@@ -209,7 +236,14 @@ export function useDiscovery({
       ? ["anime"]
       : ["movie", "tv"]);
 
+  function loadMore() {
+    if (ranking || busy || error || !hasMore || loadingPage.current) return;
+    loadingPage.current = true;
+    setPage((value) => value + 1);
+  }
   return {
+    loadMore,
+    retryLoad: () => setRetry((value) => value + 1),
     rankingFetchedAt,
     source,
     setSource,

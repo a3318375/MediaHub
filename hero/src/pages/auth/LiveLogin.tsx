@@ -11,7 +11,7 @@ export function LiveLogin({
   onDemo,
 }: {
   onLogin: (s: Session, remember?: boolean) => void;
-  onDemo: () => void;
+  onDemo?: () => void;
 }) {
   const [account, setAccount] = useState("");
   const [password, setPassword] = useState("");
@@ -139,9 +139,9 @@ export function LiveLogin({
           <Button type="submit" isDisabled={busy || setup === null}>
             {busy ? "正在处理…" : setup ? "创建账号并登录" : "连接服务"}
           </Button>
-          <Button variant="secondary" onPress={onDemo}>
+          {onDemo && <Button variant="secondary" onPress={onDemo}>
             返回独立演示
-          </Button>
+          </Button>}
         </form>
         <small>账号与数据由已连接的 MediaHub 服务管理。</small>
       </Card>

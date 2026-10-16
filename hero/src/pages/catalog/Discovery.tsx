@@ -1,11 +1,10 @@
+import { useEffect, useRef, useState } from "react";
 import { useDiscovery } from "../../hooks/useDiscovery";
 
 import { Button, Card, Input, Tabs } from "@heroui/react";
 
 import {
   Check,
-  ChevronLeft,
-  ChevronRight,
   Film,
   RefreshCw,
   Search,
@@ -85,8 +84,9 @@ export function Discovery({
     setHistory,
     filters,
     setFilters,
-    page,
     setPage,
+    loadMore,
+    retryLoad,
     total,
     totalCapped,
     hasMore,
@@ -106,6 +106,22 @@ export function Discovery({
     search: searchResource,
     subscribe,
   });
+  const sentinel = useRef<HTMLDivElement>(null);
+  const [showTop, setShowTop] = useState(false);
+  useEffect(() => {
+    if (ranking) return;
+    const update = () => setShowTop(window.scrollY > 650);
+    window.addEventListener("scroll", update, {passive: true});
+    return () => window.removeEventListener("scroll", update);
+  }, [ranking]);
+  useEffect(() => {
+    if (ranking || busy || error || !hasMore || !sentinel.current) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) loadMore();
+    }, {rootMargin: "400px 0px"});
+    observer.observe(sentinel.current);
+    return () => observer.disconnect();
+  }, [ranking, busy, error, hasMore, loadMore]);
   return (
     <>
       {!ranking ? (
@@ -301,62 +317,9 @@ export function Discovery({
                 setFilters({});
               }}
             />
-            {capability?.filters.year && (
-              <FilterTabs
-                label="年份"
-                value={filters.year || ""}
-                options={[
-                  ["", "全部"],
-                  ...Array.from(
-                    {
-                      length: Math.min(
-                        20,
-                        capability.filters.year.max -
-                          capability.filters.year.min +
-                          1,
-                      ),
-                    },
-                    (_, i) => {
-                      const year = String(capability.filters.year!.max - i);
-                      return [year, year];
-                    },
-                  ),
-                ]}
-                onChange={(v) => {
-                  setFilters((old) => {
-                    const next = { ...old };
-                    if (v) next.year = v;
-                    else delete next.year;
-                    return next;
-                  });
-                  setPage(1);
-                }}
-              />
-            )}
-            {capability?.filters.month && (
-              <FilterTabs
-                label="月份"
-                value={filters.month || ""}
-                options={[
-                  ["", "全部"],
-                  ...Array.from({ length: 12 }, (_, i) => [
-                    String(i + 1),
-                    `${i + 1} 月`,
-                  ]),
-                ]}
-                onChange={(v) => {
-                  setFilters((old) => {
-                    const next = { ...old };
-                    if (v) next.month = v;
-                    else delete next.month;
-                    return next;
-                  });
-                  setPage(1);
-                }}
-              />
-            )}
             {capability &&
-              Object.entries(capability.filters)
+              (["genre", "region", "season", "status", "sort"] as const)
+                .map((key) => [key, capability.filters[key]] as const)
                 .filter(
                   ([k, v]) =>
                     ["genre", "region", "sort", "season", "status"].includes(
@@ -411,6 +374,62 @@ export function Discovery({
                     }}
                   />
                 ))}
+            {capability?.filters.year && (
+              <FilterTabs
+                disabled={!!search}
+                label="年份"
+                value={filters.year || ""}
+                options={[
+                  ["", "全部"],
+                  ...Array.from(
+                    {
+                      length: Math.min(
+                        20,
+                        Math.min(capability.filters.year.max, new Date().getFullYear()) -
+                          capability.filters.year.min +
+                          1,
+                      ),
+                    },
+                    (_, i) => {
+                      const year = String(Math.min(capability.filters.year!.max, new Date().getFullYear()) - i);
+                      return [year, year];
+                    },
+                  ),
+                ]}
+                onChange={(v) => {
+                  setFilters((old) => {
+                    const next = { ...old };
+                    if (v) next.year = v;
+                    else { delete next.year; delete next.month; }
+                    return next;
+                  });
+                  setPage(1);
+                }}
+              />
+            )}
+            {capability?.filters.month && (
+              <FilterTabs
+                disabled={!!search || !filters.year}
+                label="月份"
+                value={filters.month || ""}
+                options={[
+                  ["", "全部"],
+                  ...Array.from({ length: 12 }, (_, i) => [
+                    String(i + 1),
+                    `${i + 1} 月`,
+                  ]),
+                ]}
+                onChange={(v) => {
+                  setFilters((old) => {
+                    const next = { ...old };
+                    if (v) next.month = v;
+                    else delete next.month;
+                    return next;
+                  });
+                  setPage(1);
+                }}
+              />
+            )}
             <form
               className="media-query"
               onSubmit={(e) => {
@@ -511,14 +530,14 @@ export function Discovery({
           当前为本地示例资料，用于预览布局与交互；切换服务模式可查看真实来源数据。
         </p>
       )}
-      {error ? (
+      {error && !items.length ? (
         <div role="alert" className="media-error">
           {error}
-          <Button variant="ghost" onPress={() => setRevision((v) => v + 1)}>
+          <Button variant="ghost" onPress={retryLoad}>
             重试
           </Button>
         </div>
-      ) : busy ? (
+      ) : busy && !items.length ? (
         <div className="poster-grid" aria-label="正在加载作品">
           {Array.from({ length: 6 }, (_, i) => (
             <div className="poster-skeleton" key={i} />
@@ -563,7 +582,7 @@ export function Discovery({
             <button
               key={`${h.keyword}-${h.source}`}
               onClick={() => {
-                setSource(h.source);
+                chooseSource(h.source);
                 setQuery(h.keyword);
                 setSearch(h.keyword);
                 setPage(1);
@@ -575,27 +594,15 @@ export function Discovery({
           ))}
         </div>
       )}
-      {!ranking && (
-        <div className="media-pagination">
-          <Button
-            variant="secondary"
-            isDisabled={page === 1 || busy}
-            onPress={() => setPage((p) => p - 1)}
-          >
-            <ChevronLeft size={15} />
-            上一页
-          </Button>
-          <span>第 {page} 页</span>
-          <Button
-            variant="secondary"
-            isDisabled={!hasMore || busy}
-            onPress={() => setPage((p) => p + 1)}
-          >
-            下一页
-            <ChevronRight size={15} />
-          </Button>
+      {!ranking && <>
+        <div ref={sentinel} className="discovery-load-more" aria-live="polite" aria-busy={busy}>
+          {busy ? <span>{items.length ? "正在加载更多作品…" : "正在加载作品…"}</span> : error ? <>
+            <span role="alert">{error}</span><Button variant="secondary" onPress={retryLoad}>重试加载</Button>
+          </> : hasMore ? <><span>已加载 {items.length} 部作品</span><Button variant="secondary" onPress={loadMore}>加载更多</Button></>
+          : items.length > 0 ? <span>已展示 {items.length} 部作品 · 已全部加载</span> : null}
         </div>
-      )}
+        {showTop && <Button className="discovery-back-top" variant="secondary" onPress={() => window.scrollTo({top: 0, behavior: "smooth"})}>↑ 回到顶部</Button>}
+      </>}
     </>
   );
 }

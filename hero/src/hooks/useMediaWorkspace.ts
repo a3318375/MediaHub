@@ -50,7 +50,24 @@ export function useMediaWorkspace() {
   const [tvLoading, setTVLoading] = useState(false);
   const tvVersion = useRef(0);
   const [downloads, setDownloads] = useState<Download[]>([]);
-  const [detail, setDetail] = useState<MediaSummary | null>(null);
+  const [detail, setDetailState] = useState<MediaSummary | null>(null);
+  const detailScroll = useRef<{top: number; page: Page} | null>(null);
+  function setDetail(value: MediaSummary | null) {
+    if (value && !detail) detailScroll.current = {top: window.scrollY, page};
+    setDetailState(value);
+  }
+  useEffect(() => {
+    if (detail) {
+      window.scrollTo(0, 0);
+    } else if (!detail && detailScroll.current) {
+      const saved = detailScroll.current;
+      detailScroll.current = null;
+      if (saved.page === page) {
+        const frame = requestAnimationFrame(() => window.scrollTo(0, saved.top));
+        return () => cancelAnimationFrame(frame);
+      }
+    }
+  }, [detail, page]);
   const [edit, setEdit] = useState<TV | TVDraft | null>(null);
   const [tvDownload, setTVDownload] = useState<{
     tv: TV;

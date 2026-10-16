@@ -2,7 +2,7 @@ package discovery
 
 import (
 	"context"
-	"media-center/internal/media"
+	"mediahub/internal/media"
 )
 
 type Page struct {

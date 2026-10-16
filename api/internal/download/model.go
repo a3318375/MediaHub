@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strings"
 
-	"media-center/internal/pan115"
+	"mediahub/internal/pan115"
 )
 
 type MediaContext struct {

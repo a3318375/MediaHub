@@ -245,3 +245,13 @@ test("request cancellation reaches fetch and cannot leave a pending search after
   await assert.rejects(result, (e) => e.name === "AbortError");
   assert.equal(observed.aborted, true);
 });
+
+ test("provider refresh reloads availability after backend configuration changes", async () => {
+  let calls = 0;
+  globalThis.fetch = async () => new Response(JSON.stringify({providers: [{source: "tmdb", available: ++calls > 1}]}), {status: 200});
+  const live = api.service({mode: "live", name: "test", token: "test-token"});
+  assert.equal((await live.providers()).providers[0].available, false);
+  assert.equal((await live.providers()).providers[0].available, false);
+  assert.equal((await live.providers(true)).providers[0].available, true);
+  assert.equal(calls, 2);
+});

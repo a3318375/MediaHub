@@ -13,7 +13,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 
-	"media-center/internal/download"
+	"mediahub/internal/download"
 )
 
 // ChannelReader reads only public Telegram previews. Private/invite channels

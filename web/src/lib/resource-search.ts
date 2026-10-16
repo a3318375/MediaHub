@@ -18,8 +18,8 @@ export type MediaSearchHistoryEntry = {
 
 type SearchHistoryEntry = ResourceSearchHistoryEntry | MediaSearchHistoryEntry
 
-export const RESOURCE_SEARCH_HISTORY_KEY = "media-center-search-history"
-export const RESOURCE_SEARCH_RESULT_KEY = "media-center-last-search-result"
+export const RESOURCE_SEARCH_HISTORY_KEY = "mediahub-search-history"
+export const RESOURCE_SEARCH_RESULT_KEY = "mediahub-last-search-result"
 
 export function clearResourceSearchResult(
   storage: Pick<Storage, "removeItem">
@@ -94,7 +94,7 @@ function readAllSearchHistory(
 ): SearchHistoryEntry[] {
   try {
     const parsed: unknown = JSON.parse(
-      storage.getItem(RESOURCE_SEARCH_HISTORY_KEY) ?? "[]"
+      storage.getItem(RESOURCE_SEARCH_HISTORY_KEY) ?? storage.getItem("media-center-search-history") ?? "[]"
     )
     return Array.isArray(parsed) ? parsed.filter(isSearchHistoryEntry) : []
   } catch {
@@ -144,7 +144,7 @@ export function saveMediaSearchHistory(
 }
 
 export const RESOURCE_SEARCH_CONFIG_CHANGED =
-  "media-center-resource-config-changed"
+  "mediahub-resource-config-changed"
 
 export type ResourceSearchPreferences = {
   channels: string[]

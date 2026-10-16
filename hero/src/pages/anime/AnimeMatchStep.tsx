@@ -26,24 +26,24 @@ export function AnimeMatchStep({
         </p>
         {[[], ...(selectedGroup.groupRegex?.regexList || [])].map(
           (rules, i) => (
-            <label className="management-card" key={i}>
+            <label className={`anime-rule-card ${selectedRule === i - 1 ? "is-selected" : ""}`} key={i}>
               <input
                 type="radio"
                 name="anime-rule"
                 checked={selectedRule === i - 1}
                 onChange={() => setSelectedRule(i - 1)}
               />
-              {rules.length
+              <span className="anime-rule-tags">{rules.length
                 ? rules.map((r) => (
-                    <span key={r.regex}>
-                      {r.label} <code>{r.regex}</code>{" "}
+                    <span className="anime-rule-tag" key={r.regex} title={r.regex}>
+                      {r.label}
                     </span>
                   ))
-                : "全部"}
+                : "全部版本"}</span>
             </label>
           ),
         )}
-        <div className="management-actions">
+        <div className="anime-step-actions">
           <Button variant="secondary" onPress={() => setStep("browse")}>
             返回字幕组
           </Button>

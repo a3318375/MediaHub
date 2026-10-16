@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"media-center/internal/discovery"
+	"mediahub/internal/discovery"
 )
 
 func TestSelectedRankingsValidationAndErrors(t *testing.T) {

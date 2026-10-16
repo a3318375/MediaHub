@@ -52,7 +52,7 @@ func New(dataDir string) (*Bootstrap, error) {
 	if err := initializeProxyEnvironment(); err != nil {
 		return nil, fmt.Errorf("initialize proxy environment: %w", err)
 	}
-	plugins, configured := os.LookupEnv("MEDIA_CENTER_PANSOU_PLUGINS")
+	plugins, configured := os.LookupEnv("MEDIAHUB_PANSOU_PLUGINS")
 	if !configured {
 		plugins, configured = os.LookupEnv("ENABLED_PLUGINS")
 	}

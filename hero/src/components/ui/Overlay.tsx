@@ -7,11 +7,13 @@ export function Overlay({
   children,
   footer,
   onClose,
+  wide = false,
 }: {
   title: string;
   children: ReactNode;
   footer?: ReactNode;
   onClose: () => void;
+  wide?: boolean;
 }) {
   return (
     <Modal.Backdrop
@@ -20,7 +22,7 @@ export function Overlay({
         if (!open) onClose();
       }}
     >
-      <Modal.Container size="md">
+      <Modal.Container size="md" className={wide ? "anime-editor-modal" : undefined}>
         <Modal.Dialog>
           <Modal.CloseTrigger aria-label="Close dialog" onPress={onClose} />
           <Modal.Header>

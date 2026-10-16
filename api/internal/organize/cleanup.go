@@ -3,7 +3,7 @@ package organize
 import (
 	"context"
 	"fmt"
-	"media-center/internal/pan115"
+	"mediahub/internal/pan115"
 )
 
 type emptyDirectoryGateway interface {

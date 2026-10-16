@@ -7,7 +7,7 @@ import { ChevronLeft, Film, Plus, Search } from "lucide-react";
 
 import { image } from "../../lib/media-service";
 
-import { SelectField } from "../../components/ui/ManagementUI";
+
 
 import type { MediaDetail, MediaSummary } from "../../lib/media-contract";
 
@@ -34,7 +34,7 @@ export function Detail({
   const [data, setData] = useState<MediaDetail>(media);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
-  const [season, setSeason] = useState("1");
+
   useEffect(() => {
     let active = true;
     setData(media);
@@ -45,11 +45,7 @@ export function Detail({
       .then((v) => {
         if (active) {
           setData(v);
-          setSeason(
-            String(
-              v.seasons?.find((s) => s.seasonNumber > 0)?.seasonNumber || 1,
-            ),
-          );
+
         }
       })
       .catch((e) => {
@@ -122,19 +118,6 @@ export function Detail({
               ))}
             </div>
             <p>{busy ? "正在加载详情…" : data.overview || "暂无简介"}</p>
-            {data.seasons?.length ? (
-              <SelectField
-                label="订阅季"
-                value={season}
-                options={data.seasons
-                  .filter((s) => s.seasonNumber > 0)
-                  .map((s) => [
-                    String(s.seasonNumber),
-                    `${s.name || `第 ${s.seasonNumber} 季`}${s.episodeCount ? ` · ${s.episodeCount} 集` : ""}`,
-                  ])}
-                onChange={setSeason}
-              />
-            ) : null}
             {error && (
               <p role="alert" className="media-error">
                 {error}
@@ -159,7 +142,7 @@ export function Detail({
                       sourceId: data.externalIds?.tmdb || data.sourceId,
                       providerId: data.externalIds?.tmdb || data.providerId,
                     },
-                    Number(season),
+                    0,
                   )
                 }
               >
@@ -188,6 +171,7 @@ export function Detail({
               </div>
             ))}
           </dl>
+          {!!data.seasons?.length && <div className="detail-season-summary"><h3>季与集</h3><dl>{data.seasons.map((season) => <div key={season.seasonNumber}><dt>{season.name || `第 ${season.seasonNumber} 季`}</dt><dd>{season.episodeCount ? `${season.episodeCount} 集` : "待公布"}</dd></div>)}</dl></div>}
           {data.externalIds?.imdb && (
             <a
               href={`https://www.imdb.com/title/${encodeURIComponent(data.externalIds.imdb)}/`}
@@ -234,19 +218,7 @@ export function Detail({
               </div>
             </section>
           )}
-          {!!data.seasons?.length && (
-            <Card className="detail-seasons">
-              <h2>季与集</h2>
-              {data.seasons.map((s) => (
-                <div key={s.seasonNumber}>
-                  <strong>{s.name || `第 ${s.seasonNumber} 季`}</strong>
-                  <p>
-                    {s.episodeCount ? `${s.episodeCount} 集` : "集数信息待补充"}
-                  </p>
-                </div>
-              ))}
-            </Card>
-          )}
+
         </div>
       </div>
     </section>

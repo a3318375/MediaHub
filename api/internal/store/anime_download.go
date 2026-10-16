@@ -10,9 +10,9 @@ import (
 	"math"
 	"time"
 
-	"media-center/internal/anime"
-	"media-center/internal/download"
-	"media-center/internal/pan115"
+	"mediahub/internal/anime"
+	"mediahub/internal/download"
+	"mediahub/internal/pan115"
 )
 
 func saveAnimeCandidates(tx *sql.Tx, s anime.Subscription, entries []anime.Entry) error {

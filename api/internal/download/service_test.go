@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"media-center/internal/anime"
-	"media-center/internal/download"
-	"media-center/internal/pan115"
-	"media-center/internal/store"
+	"mediahub/internal/anime"
+	"mediahub/internal/download"
+	"mediahub/internal/pan115"
+	"mediahub/internal/store"
 )
 
 const hash = "0123456789abcdef0123456789abcdef01234567"

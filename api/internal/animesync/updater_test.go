@@ -3,8 +3,8 @@ package animesync
 import (
 	"context"
 	"errors"
-	"media-center/internal/anime"
-	"media-center/internal/store"
+	"mediahub/internal/anime"
+	"mediahub/internal/store"
 	"sync/atomic"
 	"testing"
 	"time"

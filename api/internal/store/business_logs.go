@@ -3,7 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
-	"media-center/internal/download"
+	"mediahub/internal/download"
 	"time"
 )
 

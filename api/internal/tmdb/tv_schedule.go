@@ -6,13 +6,16 @@ import (
 	"net/url"
 	"time"
 
-	"media-center/internal/tv"
+	"mediahub/internal/tv"
 )
 
 // TVSchedule uses the native season episode dates, not an inferred weekday.
 func (c *Client) TVSchedule(ctx context.Context, key, id string, season int) (tv.Metadata, error) {
 	var show struct {
-		Name   string `json:"name"`
+		Name    string `json:"name"`
+		Seasons []struct {
+			Number int `json:"season_number"`
+		} `json:"seasons"`
 		Poster string `json:"poster_path"`
 	}
 	if key == "" {
@@ -25,6 +28,20 @@ func (c *Client) TVSchedule(ctx context.Context, key, id string, season int) (tv
 		return nil
 	}); err != nil {
 		return tv.Metadata{}, err
+	}
+	if season == 0 {
+		out := tv.Metadata{Title: show.Name, Poster: show.Poster, Episodes: []tv.Episode{}}
+		for _, entry := range show.Seasons {
+			if entry.Number < 1 {
+				continue
+			}
+			data, err := c.TVSchedule(ctx, key, id, entry.Number)
+			if err != nil {
+				return tv.Metadata{}, err
+			}
+			out.Episodes = append(out.Episodes, data.Episodes...)
+		}
+		return out, nil
 	}
 	var data struct {
 		Episodes *[]struct {
@@ -53,7 +70,7 @@ func (c *Client) TVSchedule(ctx context.Context, key, id string, season int) (tv
 				e.Date = ""
 			}
 		}
-		out.Episodes = append(out.Episodes, tv.Episode{Number: e.Number, Name: e.Name, AirDate: e.Date})
+		out.Episodes = append(out.Episodes, tv.Episode{Season: season, Number: e.Number, Name: e.Name, AirDate: e.Date})
 	}
 	return out, nil
 }

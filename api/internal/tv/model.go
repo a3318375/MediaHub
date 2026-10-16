@@ -9,11 +9,12 @@ import (
 	"strconv"
 	"strings"
 
-	"media-center/internal/download"
-	"media-center/internal/textmatch"
+	"mediahub/internal/download"
+	"mediahub/internal/textmatch"
 )
 
 type Rules struct {
+	Sources  []string `json:"sources,omitempty"`
 	Channels []string `json:"channels"`
 	Match    string   `json:"match"`
 	Exclude  string   `json:"exclude"`
@@ -31,11 +32,14 @@ type Draft struct {
 	Rules
 }
 type Episode struct {
+	Season  int    `json:"season"`
 	Number  int    `json:"number"`
 	Name    string `json:"name"`
 	AirDate string `json:"airDate"`
 }
 type Candidate struct {
+	Season        int    `json:"season"`
+	Source        string `json:"source,omitempty"`
 	Title         string `json:"title"`
 	URL           string `json:"url"`
 	Cloud         string `json:"cloud"`
@@ -74,6 +78,7 @@ func SourceOf(d Draft) string {
 
 var tmdbIDPattern = regexp.MustCompile(`^[1-9][0-9]{0,11}$`)
 var channelPattern = regexp.MustCompile(`^[a-zA-Z0-9_]{1,32}$`)
+var sourcePattern = regexp.MustCompile(`^(plugin|tg):[a-z0-9_-]{1,64}$`)
 
 // Validate normalizes a draft before either persistence or resource selection.
 func Validate(d *Draft) error {
@@ -88,7 +93,7 @@ func Validate(d *Draft) error {
 		return fmt.Errorf("TG 订阅至少指定一个公开频道")
 	}
 	d.Title = strings.TrimSpace(d.Title)
-	if !tmdbIDPattern.MatchString(d.TMDBID) || d.Season < 1 || d.Season > 100 || d.Title == "" || len([]rune(d.Title)) > 120 {
+	if !tmdbIDPattern.MatchString(d.TMDBID) || d.Season < 0 || d.Season > 100 || d.Title == "" || len([]rune(d.Title)) > 120 {
 		return fmt.Errorf("请选择 TMDB 电视剧、有效季数和标题")
 	}
 	if len(d.Channels) > 20 {
@@ -100,6 +105,16 @@ func Validate(d *Draft) error {
 			return fmt.Errorf("TG 频道请填写公开频道用户名或 https://t.me/用户名")
 		}
 		d.Channels[i] = strings.ToLower(c)
+	}
+	if len(d.Sources) > 20 {
+		return fmt.Errorf("最多指定 20 个优先来源")
+	}
+	for i, source := range d.Sources {
+		source = strings.ToLower(strings.TrimSpace(source))
+		if !sourcePattern.MatchString(source) {
+			return fmt.Errorf("来源格式为 plugin:插件名 或 tg:频道名")
+		}
+		d.Sources[i] = source
 	}
 	for _, r := range []string{d.Match, d.Exclude} {
 		if len(r) > 500 {
@@ -171,10 +186,39 @@ func Select(d Draft, items []Candidate) []Candidate {
 		default:
 			continue
 		}
-		episode, ok := singleEpisode(item.Title, d.Season)
+		parseTitle := normalizeSeasonTitle(item.Title)
+		season := d.Season
+		if season == 0 {
+			season = item.Season
+			if season == 0 {
+				season = 1
+			}
+			markers := explicitSeason.FindAllStringSubmatch(parseTitle, -1)
+			valid := true
+			for index, m := range markers {
+				raw := m[1]
+				if raw == "" {
+					raw = m[2]
+				}
+				n, _ := strconv.Atoi(raw)
+				if n < 1 || (index > 0 && n != season) {
+					valid = false
+					break
+				}
+				season = n
+			}
+			if !valid {
+				continue
+			}
+		}
+		item.Season = season
+		if SourceOf(d) == "pansou" && len(d.Sources) > 0 && sourcePriority(d, item) == len(d.Sources) {
+			continue
+		}
+		episode, ok := singleEpisode(parseTitle, season)
 		item.CollectionEnd = 0
 		if !ok {
-			if end, valid := collectionEpisode(item.Title, d.Season); valid {
+			if end, valid := collectionEpisode(parseTitle, season); valid {
 				episode, ok = end, true
 				item.CollectionEnd = end
 			}
@@ -186,16 +230,19 @@ func Select(d Draft, items []Candidate) []Candidate {
 		if item.Size == 0 {
 			item.Size = ParseSize(item.Title)
 		}
-		old, ok := best[item.Episode]
-		if !ok || (item.Cloud == "115" && old.Cloud != "115") || (item.Cloud == old.Cloud && (item.Size > old.Size || (item.Size == old.Size && item.URL < old.URL))) {
-			best[item.Episode] = item
+		key := EpisodeKey(item.Season, item.Episode)
+		old, ok := best[key]
+		if !ok || sourcePriority(d, item) < sourcePriority(d, old) || (sourcePriority(d, item) == sourcePriority(d, old) && ((item.Cloud == "115" && old.Cloud != "115") || (item.Cloud == old.Cloud && (item.Size > old.Size || (item.Size == old.Size && item.URL < old.URL))))) {
+			best[key] = item
 		}
 	}
 	out := []Candidate{}
 	for _, v := range best {
 		out = append(out, v)
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].Episode < out[j].Episode })
+	sort.Slice(out, func(i, j int) bool {
+		return EpisodeKey(out[i].Season, out[i].Episode) < EpisodeKey(out[j].Season, out[j].Episode)
+	})
 	return out
 }
 
@@ -232,7 +279,10 @@ func collectionEpisode(title string, season int) (int, bool) {
 }
 
 // Covers reports source availability; it never denotes a completed download.
-func Covers(c Candidate, episode int) bool {
+func Covers(c Candidate, episode int, season ...int) bool {
+	if len(season) > 0 && c.Season != 0 && c.Season != season[0] {
+		return false
+	}
 	return c.Episode == episode || (c.CollectionEnd > 0 && episode > 0 && episode <= c.CollectionEnd)
 }
 
@@ -266,4 +316,48 @@ func singleEpisode(title string, season int) (int, bool) {
 		return n, n > 0 && n <= 10000
 	}
 	return 0, false
+}
+
+func EpisodeKey(season, episode int) int { return season*100000 + episode }
+func sourcePriority(d Draft, item Candidate) int {
+	if SourceOf(d) == "tg" {
+		for i, c := range d.Channels {
+			if strings.EqualFold(c, item.Channel) {
+				return i
+			}
+		}
+		return len(d.Channels)
+	}
+	for i, source := range d.Sources {
+		if source == strings.ToLower(item.Source) || source == strings.ToLower(item.Channel) || source == "plugin:"+strings.ToLower(item.Source) || source == "tg:"+strings.ToLower(item.Channel) {
+			return i
+		}
+	}
+	return len(d.Sources)
+}
+
+var chineseSeason = regexp.MustCompile(`第\s*([一二两三四五六七八九十百零]+)\s*季`)
+
+func normalizeSeasonTitle(title string) string {
+	return chineseSeason.ReplaceAllStringFunc(title, func(marker string) string {
+		digits := map[rune]int{'零': 0, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9}
+		raw := chineseSeason.FindStringSubmatch(marker)[1]
+		total, current := 0, 0
+		for _, char := range raw {
+			if char == '十' || char == '百' {
+				if current == 0 {
+					current = 1
+				}
+				unit := 10
+				if char == '百' {
+					unit = 100
+				}
+				total += current * unit
+				current = 0
+			} else {
+				current = digits[char]
+			}
+		}
+		return fmt.Sprintf("第%d季", total+current)
+	})
 }

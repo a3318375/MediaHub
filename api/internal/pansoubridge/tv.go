@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"media-center/internal/tv"
+	"mediahub/internal/tv"
 )
 
 func (b *Bootstrap) SearchTV(ctx context.Context, d tv.Draft) ([]tv.Candidate, error) {
@@ -19,6 +19,18 @@ func (b *Bootstrap) SearchTV(ctx context.Context, d tv.Draft) ([]tv.Candidate, e
 	}
 	channels := selected.Channels
 	plugins := selected.Plugins
+	if len(d.Sources) > 0 {
+		channels = []string{}
+		plugins = []string{}
+		for _, entry := range d.Sources {
+			if strings.HasPrefix(entry, "plugin:") {
+				plugins = append(plugins, strings.TrimPrefix(entry, "plugin:"))
+			}
+			if strings.HasPrefix(entry, "tg:") {
+				channels = append(channels, strings.TrimPrefix(entry, "tg:"))
+			}
+		}
+	}
 	source := "all"
 	if len(channels) == 0 && len(plugins) == 0 {
 		return nil, fmt.Errorf("请在全局设置中启用 PanSou 搜索来源")
@@ -79,7 +91,11 @@ func tvCandidates(data searchData) []tv.Candidate {
 				continue
 			}
 			seen[key] = true
-			out = append(out, tv.Candidate{Title: title, URL: link.URL, Password: link.Password, Cloud: link.Cloud, Channel: item.Channel, Size: tv.ParseSize(title)})
+			origin := link.Source
+			if origin == "" {
+				origin = item.Channel
+			}
+			out = append(out, tv.Candidate{Source: origin, Title: title, URL: link.URL, Password: link.Password, Cloud: link.Cloud, Channel: item.Channel, Size: tv.ParseSize(title)})
 		}
 	}
 	return out

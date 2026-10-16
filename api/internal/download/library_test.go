@@ -3,10 +3,10 @@ package download_test
 import (
 	"context"
 	"fmt"
-	"media-center/internal/anime"
-	"media-center/internal/download"
-	"media-center/internal/organize"
-	"media-center/internal/pan115"
+	"mediahub/internal/anime"
+	"mediahub/internal/download"
+	"mediahub/internal/organize"
+	"mediahub/internal/pan115"
 	"testing"
 )
 

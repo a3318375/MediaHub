@@ -3,7 +3,7 @@ package douban
 import (
 	"context"
 	"encoding/json"
-	"media-center/internal/discovery"
+	"mediahub/internal/discovery"
 	"net/http"
 	"net/http/httptest"
 	"net/url"

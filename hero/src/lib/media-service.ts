@@ -7,6 +7,7 @@ import type {
 
 export type Session = { mode: "demo" | "live"; name: string; token?: string };
 export type TVDraft = {
+  sources?: string[];
   source: "tg" | "pansou";
   tmdbId: string;
   title: string;
@@ -19,8 +20,10 @@ export type TVDraft = {
 export type TV = TVDraft & {
   id: string;
   poster: string;
-  episodes: { number: number; name: string; airDate: string }[];
+  episodes: { season?: number; number: number; name: string; airDate: string }[];
   resources: {
+    season?: number;
+    source?: string;
     title: string;
     url: string;
     cloud: string;
@@ -67,19 +70,21 @@ export function read<T>(key: string, fallback: T): T {
 export function save(key: string, value: unknown) {
   localStorage.setItem(key, JSON.stringify(value));
 }
+export function isDemoEntry() {
+  return typeof window !== "undefined" &&
+    new URLSearchParams(window.location?.search || "").get("demo") === "1";
+}
 export function readSession(): Session | null {
-  let s: Session | null = null;
-  try {
-    s =
-      JSON.parse(sessionStorage.getItem(SESSION) || "null") ||
-      read<Session | null>(SESSION, null);
-  } catch {
-    /* Invalid saved sessions are ignored. */
+  const sessions: Session[] = [];
+  for (const storage of [sessionStorage, localStorage]) {
+    try {
+      const saved = JSON.parse(storage.getItem(SESSION) || "null");
+      if (saved) sessions.push(saved);
+    } catch { /* Preserve saved data when it cannot be read. */ }
   }
-  return s &&
-    (s.mode === "demo" || (s.mode === "live" && typeof s.token === "string"))
-    ? s
-    : null;
+  return sessions.find((s) => s.mode === "live" && typeof s.token === "string" && !!s.token.trim())
+    || (isDemoEntry() ? sessions.find((s) => s.mode === "demo") : null)
+    || null;
 }
 
 // Bounded, session-scoped cache. Pending identical requests share one promise.
@@ -293,7 +298,7 @@ export function service(session: Session) {
       ttl,
     );
   return {
-    providers: () => get<MediaProvidersResponse>("/api/media/providers"),
+    providers: (force = false) => get<MediaProvidersResponse>("/api/media/providers", force),
     discover: (query: Record<string, string>, force = false) =>
       live
         ? get<MediaPage<MediaSummary>>(

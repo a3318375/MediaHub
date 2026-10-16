@@ -5,9 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"media-center/internal/discovery"
-	"media-center/internal/media"
-	"media-center/internal/providers/transport"
+	"mediahub/internal/discovery"
+	"mediahub/internal/media"
+	"mediahub/internal/providers/transport"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-const UserAgent = "media-center/0.1 (https://github.com/a3318375/media-center-api)"
+const UserAgent = "mediahub/0.1 (https://github.com/a3318375/mediahub)"
 
 type Provider struct {
 	BaseURL   string

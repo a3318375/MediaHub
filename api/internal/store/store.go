@@ -65,7 +65,10 @@ func Open(dataDir string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	db, err := sql.Open("sqlite", filepath.Join(dataDir, "media-center.db"))
+	if err := migrateDatabaseName(dataDir); err != nil {
+		return nil, err
+	}
+	db, err := sql.Open("sqlite", filepath.Join(dataDir, "mediahub.db"))
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}

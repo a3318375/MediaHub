@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"media-center/internal/download"
-	"media-center/internal/pan115"
+	"mediahub/internal/download"
+	"mediahub/internal/pan115"
 )
 
 var ErrNotFound = errors.New("organize record not found")

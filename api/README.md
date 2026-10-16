@@ -43,7 +43,7 @@ go build ./...
 
 同步后已通过 `go test ./...`、`go vet ./...` 和 `go build ./...`；未执行真实浏览器或真实上游验收。下文保留既有认证和 TMDB 契约说明，其中带日期的测试记录仅代表当时的验收范围。
 
-给 `media-center-web` 提供 API 的 Gin 单体后端，使用 SQLite 保存单用户、登录会话和分组配置。
+给 `mediahub-web` 提供 API 的 Gin 单体后端，使用 SQLite 保存单用户、登录会话和分组配置。
 
 ## 首次启动
 
@@ -58,11 +58,11 @@ Windows 开发环境可运行 `./scripts/dev.ps1`：未显式配置 PROXY/HTTP_P
 
 服务默认监听 `http://localhost:18080`。首次打开前端时会显示创建管理员账号页面；账号 3–32 位，密码不能为空且最多 72 字节（bcrypt 限制）。初始化后可用新账号登录。健康检查地址是 `GET /api/health`。
 
-默认数据保存在项目目录的 `data/`：`media-center.db` 是 SQLite 数据库，`master.key` 用于加密 TMDB/Emby API Key、115 Cookie 和 Telegram Bot Token。备份和迁移时需要一起保存这两个文件；丢失密钥后无法解密已存的服务凭证。可用 `MEDIA_CENTER_DATA_DIR` 指定其他持久化目录，用 `HTTP_ADDR` 指定监听地址。
+默认数据保存在项目目录的 `data/`：`mediahub.db` 是 SQLite 数据库，`master.key` 用于加密 TMDB/Emby API Key、115 Cookie 和 Telegram Bot Token。备份和迁移时需要一起保存这两个文件；丢失密钥后无法解密已存的服务凭证。可用 `MEDIAHUB_DATA_DIR` 指定其他持久化目录，用 `HTTP_ADDR` 指定监听地址。
 
 ## 前端连接
 
-在 `media-center-web` 目录启动开发服务器时，开启真实登录和配置 API、保留其他媒体页面的 mock：
+在 `mediahub-web` 目录启动开发服务器时，开启真实登录和配置 API、保留其他媒体页面的 mock：
 
 ```powershell
 $env:VITE_BACKEND_AUTH = 'true'
@@ -84,7 +84,9 @@ Vite 默认把 `/api` 代理到 `127.0.0.1:18080`；后端请设置 `HTTP_ADDR=1
 
 所有受保护接口使用 `Authorization: Bearer <token>`。数据库只保存 session token 的 SHA-256 摘要；密码使用 bcrypt 哈希；敏感配置使用本地 AES-GCM 密钥加密。设置 GET/PUT 默认返回 `configuredSecrets` 与 `maskedSecrets`（前后各 4 位，短值减少可见位数），values 不包含凭证明文；保存时空字符串表示保持现有密钥不变。管理员点击“显示全文”可调用显式 reveal 接口，无需再次验证密码。
 
-API Key 以 `mc_` 开头，数据库仅保存 SHA-256 摘要；完整密钥只在创建响应中返回一次。网页会话可管理密钥，API Key 仅用于 `/api/v1` 应用接口，不能管理账号、设置或其他 API Key。应用接口应统一挂载到 `requireAPI` 鉴权组，因而支持网页会话和 Hermes 等集成客户端。TMDB 元数据探索接口使用 `/api/media` 网页会话鉴权；资源搜索已提供基础接口，下载尚未接入；当前 `/api/v1/whoami` 仅用于验证认证链路。
+API Key 以 `mc_` 开头，数据库仅保存 SHA-256 摘要；完整密钥只在创建响应中返回一次。网页会话可管理密钥，API Key 用于 `/api/v1` 应用接口，不能管理账号、其他 API Key 或展示凭据明文。应用接口统一挂载到 `requireAPI` 鉴权组，支持网页会话和 Hermes 等集成客户端。
+
+集成接口包括 `/api/v1/media/providers`、`/media/discover`、`/media/rankings`、`/media/rankings/platforms`、`/media/:source/:sourceId`（后四项同样以 `/api/v1` 开头），以及 `GET|PUT /api/v1/settings/:section`、`GET /api/v1/logs`，复用网页的服务和持久化逻辑。订阅、资源搜索与下载同样经过本系统。Hermes skill 位于项目 `skills/mediahub-control/`，通过 `MEDIAHUB_API_KEY` 和 `MEDIAHUB_BASE_URL` 配置，无需网页登录令牌。
 
 日志接口由服务端记录请求时间、模块、级别、路径、状态码和耗时；最多保留最近 5000 条，不记录请求头或查询参数。日志查询支持级别、模块、内容和数量筛选。
 
@@ -119,7 +121,7 @@ HTTP 路由和输入校验放在 `internal/httpapi`，领域 DTO 放在 `interna
 
 全部 TMDB 测试使用随机生成的测试凭证和本地假上游。沙箱禁止监听端口，因此使用 `net/http/httptest.ResponseRecorder` + 注入 Transport，在进程内驱动上游 Handler；不联网，不使用真实密钥。测试覆盖参数、同号身份、归一化、真实/未知分页、缓存/过期/配置更换、取消/超时、错误/有界重试及设置密钥读取脱敏。
 
-设置 `PATH=/home/yuxh/.local/bin:$PATH`、`GOCACHE=/tmp/media-center-go-build` 后，实际执行 `go build ./...`、`go vet ./...` 均退出 0、无诊断；`go test ./...` 退出 0，httpapi 与 tmdb 测试通过，其余包无测试。默认 Go 缓存目录不可写，首次尝试失败后改用上述可写目录。
+设置 `PATH=/home/yuxh/.local/bin:$PATH`、`GOCACHE=/tmp/mediahub-go-build` 后，实际执行 `go build ./...`、`go vet ./...` 均退出 0、无诊断；`go test ./...` 退出 0，httpapi 与 tmdb 测试通过，其余包无测试。默认 Go 缓存目录不可写，首次尝试失败后改用上述可写目录。
 
 前端实际执行 typecheck、lint、build 均退出 0；Vite 成功构建，提示主 JS chunk 超过 500 kB。尚未验证真实 TMDB API、图片 CDN、部署出站网络或浏览器点击联调；提供密钥后才能做这些验收。未接入豆瓣/Bangumi/AniList、资源搜索或下载。
 
@@ -175,3 +177,11 @@ GET/PUT `/api/settings/{section}` 增加 `maskedSecrets: {settingKey: maskedValu
 POST `/api/settings/{section}/secrets/reveal`，请求 `{key: "115.cookie"}` 等已注册凭证字段，响应 `{value: "完整凭证"}`。沿用 requireUser，仅现有管理员网页会话可用，不支持集成 API Key；无需重复输入密码。无效/跨分类字段 400，未保存 404。响应使用 Cache-Control: no-store，日志不记录请求体与凭证值。AES-GCM 存储及空字符串保留语义不变。
 
 已用临时测试凭证验证 TMDB/Emby/115/机器人 Token 的保存、默认脱敏、全文读取、缺失字段与未登录访问，以及空值不覆盖。没有输出或更改用户真实凭证。
+
+## 整剧订阅与资源优先级
+
+电视剧订阅的 `season: 0` 表示全部正常季度，后续刷新会重新读取 TMDB 季列表并跟踪新季度；既有正整数分季订阅保持原语义，不自动改写。播出集和候选资源增加 `season`，用“季＋集”识别，避免跨季覆盖。整剧订阅与同一作品的分季订阅不能重复创建。
+
+`source: pansou` 可通过有序 `sources` 数组指定来源，例如 `plugin:xiaokupan`、`tg:频道名`。只从指定来源搜索与筛选，每集按数组顺序优先选择；未指定时沿用全局来源配置。`source: tg` 使用有序 `channels` 公开频道列表。相同来源内保留现有的 115 分享、体积等优选规则。
+
+Hero 从作品详情自动带入身份，默认订阅全部季度，按作品名及所选清晰度生成正向条件组合；默认不锁定首播年份，避免漏掉后续季度。自定义匹配和排除正则保留在高级设置中。

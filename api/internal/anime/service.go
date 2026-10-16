@@ -113,7 +113,7 @@ func fetchPublic(ctx context.Context, raw string) ([]byte, error) {
 	if e != nil {
 		return nil, e
 	}
-	req.Header.Set("User-Agent", "media-center/0.1 (+https://github.com/a3318375/media-center-api)")
+	req.Header.Set("User-Agent", "mediahub/0.1 (+https://github.com/a3318375/mediahub)")
 	res, e := client.Do(req)
 	if e != nil {
 		return nil, fmt.Errorf("无法连接上游，请检查地址与网络")

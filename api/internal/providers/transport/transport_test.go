@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"media-center/internal/discovery"
+	"mediahub/internal/discovery"
 	"net/http"
 	"net/http/httptest"
 	"testing"

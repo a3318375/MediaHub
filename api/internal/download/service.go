@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"golang.org/x/time/rate"
-	"media-center/internal/pan115"
+	"mediahub/internal/pan115"
 )
 
 var ErrNotFound = errors.New("download not found")

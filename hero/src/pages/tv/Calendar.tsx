@@ -23,6 +23,7 @@ export function Calendar({
 }) {
   const [selectedEvent, setSelectedEvent] = useState<{
     subscription: TV;
+    season?: number;
     number: number;
     name: string;
     airDate: string;
@@ -98,16 +99,15 @@ export function Calendar({
                   .filter((e) => e.airDate === date)
                   .map((e) => (
                     <button
-                      key={`${e.subscription.id}-${e.number}`}
+                      key={`${e.subscription.id}-${e.season}-${e.number}`}
                       className={
                         e.subscription.resources.some(
                           (r) =>
-                            r.episode === e.number ||
+                            (r.season || e.subscription.season || 1) === (e.season || e.subscription.season || 1) && (r.episode === e.number ||
                             !!(
                               r.collectionEnd &&
-                              r.episode <= e.number &&
                               r.collectionEnd >= e.number
-                            ),
+                            )),
                         )
                           ? "found"
                           : ""
@@ -116,15 +116,10 @@ export function Calendar({
                     >
                       <strong>{e.subscription.title}</strong>
                       <small>
-                        E{String(e.number).padStart(2, "0")} ·{" "}
+                        S{String(e.season || e.subscription.season || 1).padStart(2,"0")}E{String(e.number).padStart(2, "0")} ·{" "}
                         {e.subscription.resources.some(
                           (r) =>
-                            r.episode === e.number ||
-                            !!(
-                              r.collectionEnd &&
-                              r.episode <= e.number &&
-                              r.collectionEnd >= e.number
-                            ),
+                            (r.season || e.subscription.season || 1) === (e.season || e.subscription.season || 1) && (r.episode === e.number || !!(r.collectionEnd && r.collectionEnd >= e.number)),
                         )
                           ? "资源已找到"
                           : e.subscription.enabled
@@ -142,7 +137,7 @@ export function Calendar({
       </div>
       {selectedEvent && (
         <Overlay
-          title={`${selectedEvent.subscription.title} · 第 ${selectedEvent.number} 集`}
+          title={`${selectedEvent.subscription.title} · S${String(selectedEvent.season || selectedEvent.subscription.season || 1).padStart(2,"0")}E${String(selectedEvent.number).padStart(2,"0")}`}
           onClose={() => setSelectedEvent(null)}
         >
           <div className="management-stack">
@@ -161,10 +156,9 @@ export function Calendar({
             {selectedEvent.subscription.resources
               .filter(
                 (r) =>
-                  r.episode === selectedEvent.number ||
+                  (r.season || selectedEvent.subscription.season || 1) === (selectedEvent.season || selectedEvent.subscription.season || 1) && (r.episode === selectedEvent.number ||
                   (r.collectionEnd &&
-                    r.episode <= selectedEvent.number &&
-                    r.collectionEnd >= selectedEvent.number),
+                    r.collectionEnd >= selectedEvent.number)),
               )
               .map((r, i) => (
                 <div className="management-stack" key={i}>
@@ -185,10 +179,7 @@ export function Calendar({
               ))}
             {!selectedEvent.subscription.resources.some(
               (r) =>
-                r.episode === selectedEvent.number ||
-                (r.collectionEnd &&
-                  r.episode <= selectedEvent.number &&
-                  r.collectionEnd >= selectedEvent.number),
+                (r.season || selectedEvent.subscription.season || 1) === (selectedEvent.season || selectedEvent.subscription.season || 1) && (r.episode === selectedEvent.number || !!(r.collectionEnd && r.collectionEnd >= selectedEvent.number)),
             ) && <Empty>尚未找到本集资源，可在订阅页检查更新。</Empty>}
           </div>
         </Overlay>

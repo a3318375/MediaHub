@@ -59,9 +59,23 @@ export function SettingsForm({
     load
       .then((results) => {
         if (!active) return;
+        const drafts = Object.assign({}, ...sections.map((section) =>
+          read<Record<string, SettingValue>>(`mediahub.hero.settings.${section}`, {}),
+        ));
+        const configured = results.flatMap((r) => r.configuredSecrets);
+        const pendingSecrets = Object.fromEntries(
+          Object.entries(drafts).filter(([key, value]) =>
+            schemas[sections.find((section) => key.startsWith(section + "."))!]?.some(([name]) => name === key) &&
+            !configured.includes(key) && typeof value === "string" && value.trim() &&
+            /apiKey|cookie|token/i.test(key),
+          ),
+        );
+        if (session.mode === "live" && Object.keys(pendingSecrets).length)
+          setNotice("已找回此浏览器保存的配置草稿，点击保存后将提交到真实服务。");
         setValues({
           ...defaults,
           ...Object.assign({}, ...results.map((r) => r.values)),
+          ...(session.mode === "live" ? pendingSecrets : {}),
         });
         setSecrets(results.flatMap((r) => r.configuredSecrets));
         setMasked(
@@ -120,6 +134,7 @@ export function SettingsForm({
               }
             }
             clearCache();
+            window.dispatchEvent(new Event("mediahub-settings-saved"));
             setSaved((n) => n + 1);
             setNotice(
               session.mode === "demo"

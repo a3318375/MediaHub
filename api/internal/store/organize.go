@@ -8,9 +8,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"media-center/internal/download"
-	"media-center/internal/organize"
-	"media-center/internal/pan115"
+	"mediahub/internal/download"
+	"mediahub/internal/organize"
+	"mediahub/internal/pan115"
 	"time"
 )
 
@@ -211,13 +211,8 @@ func (s *Store) SaveOrganizePlan(p organize.Plan) error {
 	}
 	if e == nil {
 		if previous.State != p.State {
-			labels := map[string]string{"running": "开始整理", "paused": "整理暂停", "completed": "整理完成", "completed_with_issues": "整理完成，部分项目需处理"}
-			if label, ok := labels[p.State]; ok {
-				level := "INFO"
-				if p.State == "paused" || p.State == "completed_with_issues" {
-					level = "WARN"
-				}
-				_ = s.RecordLog("整理", level, label+"："+p.Rule.Name)
+			if level, message := organizeStateLog(p); message != "" {
+				_ = s.RecordLog("整理", level, message)
 			}
 		}
 		for i, action := range p.Actions {

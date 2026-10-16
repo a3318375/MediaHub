@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode"
 
-	"media-center/internal/download"
+	"mediahub/internal/download"
 )
 
 var videoExtensions = map[string]bool{".mkv": true, ".mp4": true, ".avi": true, ".mov": true, ".m4v": true, ".ts": true, ".m2ts": true, ".webm": true, ".wmv": true, ".flv": true, ".mpg": true}

@@ -1,8 +1,8 @@
 package store
 
 import (
-	"media-center/internal/anime"
-	"media-center/internal/download"
+	"mediahub/internal/anime"
+	"mediahub/internal/download"
 	"testing"
 )
 

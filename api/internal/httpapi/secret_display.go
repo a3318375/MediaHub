@@ -3,7 +3,7 @@ package httpapi
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
-	"media-center/internal/store"
+	"mediahub/internal/store"
 	"net/http"
 )
 

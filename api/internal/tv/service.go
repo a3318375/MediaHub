@@ -60,6 +60,11 @@ func (s *Service) Refresh(ctx context.Context, id string) (Subscription, error) 
 	if err != nil {
 		return sub, err
 	}
+	for i := range sub.Episodes {
+		if sub.Episodes[i].Season == 0 {
+			sub.Episodes[i].Season = sub.Season
+		}
+	}
 	now := s.Now()
 	sub.Resources = Select(sub.Draft, sub.Resources)
 	today := now.In(Location).Format("2006-01-02")
@@ -71,6 +76,11 @@ func (s *Service) Refresh(ctx context.Context, id string) (Subscription, error) 
 		sub.MetadataError = e.Error()
 	} else {
 		sub.Episodes = data.Episodes
+		for i := range sub.Episodes {
+			if sub.Episodes[i].Season == 0 {
+				sub.Episodes[i].Season = sub.Season
+			}
+		}
 		sub.Poster = data.Poster
 	}
 	sub.MetadataCheckedAt = now.UTC().Format(time.RFC3339)
@@ -94,33 +104,35 @@ func (s *Service) Refresh(ctx context.Context, id string) (Subscription, error) 
 			selected := Select(sub.Draft, append(items, sub.Resources...))
 			merged := map[int]Candidate{}
 			for _, v := range sub.Resources {
-				merged[v.Episode] = v
+				merged[EpisodeKey(v.Season, v.Episode)] = v
 			}
 			allowed := map[int]bool{}
 			for _, v := range sub.Episodes {
 				if v.AirDate == "" || v.AirDate <= today {
-					allowed[v.Number] = true
+					allowed[EpisodeKey(v.Season, v.Number)] = true
 				}
 			}
 			for _, v := range selected {
-				eligible := len(sub.Episodes) == 0 || allowed[v.Episode]
+				eligible := len(sub.Episodes) == 0 || allowed[EpisodeKey(v.Season, v.Episode)]
 				if v.CollectionEnd > 0 {
 					for episode := range allowed {
-						if Covers(v, episode) {
+						if Covers(v, episode%100000, episode/100000) {
 							eligible = true
 							break
 						}
 					}
 				}
 				if eligible {
-					merged[v.Episode] = v
+					merged[EpisodeKey(v.Season, v.Episode)] = v
 				}
 			}
 			sub.Resources = []Candidate{}
 			for _, v := range merged {
 				sub.Resources = append(sub.Resources, v)
 			}
-			sort.Slice(sub.Resources, func(i, j int) bool { return sub.Resources[i].Episode < sub.Resources[j].Episode })
+			sort.Slice(sub.Resources, func(i, j int) bool {
+				return EpisodeKey(sub.Resources[i].Season, sub.Resources[i].Episode) < EpisodeKey(sub.Resources[j].Season, sub.Resources[j].Episode)
+			})
 		}
 	}
 	sub.LastCheckedAt = now.UTC().Format(time.RFC3339)
@@ -151,7 +163,7 @@ func schedule(sub Subscription, now time.Time) (bool, time.Time) {
 	for _, episode := range sub.Episodes {
 		found := false
 		for _, resource := range sub.Resources {
-			if Covers(resource, episode.Number) {
+			if Covers(resource, episode.Number, episode.Season) {
 				found = true
 				break
 			}

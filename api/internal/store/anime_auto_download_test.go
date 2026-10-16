@@ -2,9 +2,9 @@ package store
 
 import (
 	"encoding/json"
-	"media-center/internal/anime"
-	"media-center/internal/download"
-	"media-center/internal/organize"
+	"mediahub/internal/anime"
+	"mediahub/internal/download"
+	"mediahub/internal/organize"
 	"testing"
 )
 

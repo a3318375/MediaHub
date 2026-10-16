@@ -1,6 +1,6 @@
 # ani-rss 添加动漫订阅源码分析与接入建议
 
-分析日期：2026-10-13。直接读取官方仓库 v3.2.47，固定提交 `b5238763cd5de379018f0dcf53fab1d11f8f2a20`。源码参考位于本机临时目录 `C:/Users/yuxhc/AppData/Local/Temp/media-center-ani-rss-reference`，未安装或运行 ani-rss。本次只写分析，不改业务代码和页面设计。
+分析日期：2026-10-13。直接读取官方仓库 v3.2.47，固定提交 `b5238763cd5de379018f0dcf53fab1d11f8f2a20`。源码参考位于本机临时目录 `C:/Users/yuxhc/AppData/Local/Temp/mediahub-ani-rss-reference`，未安装或运行 ani-rss。本次只写分析，不改业务代码和页面设计。
 
 源码链接以下均以此提交为基准：[固定版本](https://github.com/wushuo894/ani-rss/tree/b5238763cd5de379018f0dcf53fab1d11f8f2a20)。
 

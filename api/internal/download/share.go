@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"media-center/internal/pan115"
+	"mediahub/internal/pan115"
 )
 
 var shareCodePattern = regexp.MustCompile(`^[A-Za-z0-9]{4,64}$`)
@@ -164,7 +164,7 @@ func (s *Service) processShare(g pan115.Gateway, t Task) error {
 			return nil
 		}
 		// Deterministic isolated folder permits recovery if mkdir succeeded but its reply was lost.
-		name := "media-center-" + t.ID
+		name := "mediahub-" + t.ID
 		if t.RootFileID == "" {
 			children, e := g.ListFiles(t.DirectoryID)
 			if e != nil {

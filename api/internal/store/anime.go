@@ -6,8 +6,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"media-center/internal/anime"
-	"media-center/internal/pan115"
+	"mediahub/internal/anime"
+	"mediahub/internal/pan115"
 	"strings"
 	"time"
 )

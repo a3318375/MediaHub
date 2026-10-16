@@ -4,12 +4,12 @@ package providers_test
 
 import (
 	"context"
-	"media-center/internal/discovery"
-	"media-center/internal/providers/anilist"
-	"media-center/internal/providers/bangumi"
-	"media-center/internal/providers/douban"
-	tmdbprovider "media-center/internal/providers/tmdb"
-	legacy "media-center/internal/tmdb"
+	"mediahub/internal/discovery"
+	"mediahub/internal/providers/anilist"
+	"mediahub/internal/providers/bangumi"
+	"mediahub/internal/providers/douban"
+	tmdbprovider "mediahub/internal/providers/tmdb"
+	legacy "mediahub/internal/tmdb"
 	"os"
 	"strconv"
 	"testing"

@@ -3,7 +3,7 @@ package discovery
 import (
 	"context"
 	"encoding/json"
-	"media-center/internal/media"
+	"mediahub/internal/media"
 	"strings"
 	"time"
 )

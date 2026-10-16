@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"media-center/internal/discovery"
+	"mediahub/internal/discovery"
 	"net/http"
 	"strconv"
 	"strings"

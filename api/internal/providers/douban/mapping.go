@@ -2,9 +2,9 @@ package douban
 
 import (
 	"encoding/json"
-	"media-center/internal/discovery"
-	"media-center/internal/media"
-	"media-center/internal/providers/normalization"
+	"mediahub/internal/discovery"
+	"mediahub/internal/media"
+	"mediahub/internal/providers/normalization"
 	"net/url"
 	"strconv"
 	"strings"

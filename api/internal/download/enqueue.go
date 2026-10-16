@@ -3,7 +3,7 @@ package download
 import (
 	"context"
 
-	"media-center/internal/pan115"
+	"mediahub/internal/pan115"
 )
 
 // EnqueueToLibrary is the common entry for movies, TV and future channel matches.

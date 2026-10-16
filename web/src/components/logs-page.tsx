@@ -26,7 +26,7 @@ function downloadLogs(logs: LogEntry[]) {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement("a")
   anchor.href = url
-  anchor.download = "media-center-logs.txt"
+  anchor.download = "mediahub-logs.txt"
   anchor.click()
   URL.revokeObjectURL(url)
 }

@@ -31,13 +31,13 @@ export function FilterTabs({
       <span>{label}</span>
       <Tabs
         aria-label={label}
-        selectedKey={value}
-        onSelectionChange={(k) => onChange(String(k))}
+        selectedKey={value || "__all__"}
+        onSelectionChange={(k) => onChange(k === "__all__" ? "" : String(k))}
       >
         <Tabs.ListContainer>
           <Tabs.List aria-label={label}>
             {options.map(([id, text]) => (
-              <Tabs.Tab key={id} id={id} isDisabled={disabled}>
+              <Tabs.Tab key={id || "__all__"} id={id || "__all__"} isDisabled={disabled}>
                 {text}
                 <Tabs.Indicator />
               </Tabs.Tab>

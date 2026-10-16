@@ -2,10 +2,10 @@ package httpapi
 
 import (
 	"context"
-	"media-center/internal/discovery"
-	"media-center/internal/download"
-	"media-center/internal/media"
-	"media-center/internal/pan115"
+	"mediahub/internal/discovery"
+	"mediahub/internal/download"
+	"mediahub/internal/media"
+	"mediahub/internal/pan115"
 	"testing"
 )
 

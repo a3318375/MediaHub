@@ -10,7 +10,7 @@ import (
  "os"
  "strings"
  "time"
- "media-center/internal/store"
+ "mediahub/internal/store"
 )
 
 func main() {

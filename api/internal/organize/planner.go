@@ -6,8 +6,8 @@ import (
 	"path"
 	"strings"
 
-	"media-center/internal/download"
-	"media-center/internal/pan115"
+	"mediahub/internal/download"
+	"mediahub/internal/pan115"
 )
 
 // Lookup must return verified download artifacts or an explicit manual binding.

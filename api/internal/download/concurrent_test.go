@@ -3,8 +3,8 @@ package download_test
 import (
 	"context"
 	"fmt"
-	"media-center/internal/download"
-	"media-center/internal/pan115"
+	"mediahub/internal/download"
+	"mediahub/internal/pan115"
 	"sync/atomic"
 	"testing"
 	"time"

@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"media-center/internal/discovery"
-	"media-center/internal/providers/anilist"
-	"media-center/internal/providers/bangumi"
-	tmdbprovider "media-center/internal/providers/tmdb"
+	"mediahub/internal/discovery"
+	"mediahub/internal/providers/anilist"
+	"mediahub/internal/providers/bangumi"
+	tmdbprovider "mediahub/internal/providers/tmdb"
 )
 
 func TestTMDBChartsAndPlatformIsolation(t *testing.T) {

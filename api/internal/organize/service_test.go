@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"media-center/internal/download"
-	"media-center/internal/organize"
-	"media-center/internal/pan115"
-	"media-center/internal/store"
+	"mediahub/internal/download"
+	"mediahub/internal/organize"
+	"mediahub/internal/pan115"
+	"mediahub/internal/store"
 	"testing"
 )
 

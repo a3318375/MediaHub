@@ -4,7 +4,7 @@ package anilist
 
 import (
 	"context"
-	"media-center/internal/discovery"
+	"mediahub/internal/discovery"
 	"testing"
 	"time"
 )

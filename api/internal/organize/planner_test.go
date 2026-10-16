@@ -2,8 +2,8 @@ package organize
 
 import (
 	"context"
-	"media-center/internal/download"
-	"media-center/internal/pan115"
+	"mediahub/internal/download"
+	"mediahub/internal/pan115"
 	"testing"
 	"time"
 )

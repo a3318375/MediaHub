@@ -1,0 +1,43 @@
+/* Shared density for the three media browsing pages. */
+.media-main:is([data-page="anime"], [data-page="discover"], [data-page="rankings"]) { padding-top: 20px; }
+.media-main:is([data-page="discover"], [data-page="rankings"]) .media-heading { margin-bottom: 16px; }
+.media-main:is([data-page="discover"], [data-page="rankings"]) .media-heading h1 { font-size: 24px; margin: 0 0 5px; }
+.media-main[data-page="anime"] > div > .media-heading { display: none; }
+.anime-subscription-page { gap: 10px; }
+.anime-subscription-page > .media-section-heading { margin: 0 0 8px; flex-wrap: wrap; gap: 16px; }
+.anime-page-title h1 { font-size: 24px; font-weight: 650; display: flex; align-items: center; gap: 10px; margin: 0; }
+.anime-page-title h1 small { color: var(--muted); font-size: 12px; font-weight: 400; }
+.anime-page-title p { color: var(--muted); font-size: 12px; margin-top: 5px; }
+.anime-page-tools > .management-field { width: 280px; }
+.anime-page-tools > .management-field > span { display: none; }
+.anime-page-tools { margin-left: auto; }
+.anime-subscription-page > .media-filter { padding: 5px 0; }
+.anime-subscription-page > .anime-subscription-grid { margin-top: 10px; }
+.media-main:is([data-page="anime"], [data-page="discover"], [data-page="rankings"]) .media-filter { gap: 12px; letter-spacing: 0; }
+.media-main:is([data-page="anime"], [data-page="discover"], [data-page="rankings"]) .media-filter .tabs__tab { min-height: 28px; padding: 4px 10px; font-size: 12px; }
+.media-main:is([data-page="discover"], [data-page="rankings"]) .media-filter-card { padding: 12px 16px; gap: 6px; }
+.media-main[data-page="discover"] .discovery-source-tabs { margin-bottom: 12px; }
+.media-main[data-page="discover"] .discovery-source-tabs .tabs__tab { min-height: 34px; font-size: 13px; }
+.media-main:is([data-page="discover"], [data-page="rankings"]) .media-section-heading { margin: 16px 0 12px; }
+.media-main[data-page="rankings"] .media-source-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.media-main[data-page="rankings"] .media-source { padding: 8px 12px; border-radius: 9px; gap: 8px; flex: 0 1 auto; }
+.media-main[data-page="rankings"] .media-source small { display: none; }
+.media-main[data-page="rankings"] .media-source > img,
+.media-main[data-page="rankings"] .media-source .platform-letter { width: 24px; height: 24px; font-size: 15px; }
+.media-main[data-page="rankings"] .media-source > span:not(.platform-letter) { white-space: nowrap; }
+@media (max-width: 700px) {
+  .anime-page-tools { width: 100%; margin-left: 0; }
+  .anime-page-tools > .management-field { flex: 1; width: auto; min-width: 120px; }
+  .media-main:is([data-page="anime"], [data-page="discover"], [data-page="rankings"]) { padding: 16px 16px 28px; }
+}
+.media-main:is([data-page="discover"], [data-page="rankings"]) .media-filter { padding: 1px 0; }
+.media-main:is([data-page="anime"], [data-page="discover"], [data-page="rankings"]) .media-filter > span { padding-top: 5px; }
+.media-main:is([data-page="anime"], [data-page="discover"], [data-page="rankings"]) .media-filter .tabs__list-container { padding: 0; }
+.media-main:is([data-page="discover"], [data-page="rankings"]) .media-filter-card { gap: 4px; }
+@media (min-width: 1100px) {
+  .media-main[data-page="discover"] { position: relative; }
+  .media-main[data-page="discover"] .media-query { position: absolute; top: 19px; right: 28px; width: 480px; margin: 0; }
+  .media-main[data-page="discover"] .media-heading > div { max-width: calc(100% - 500px); }
+}
+.discovery-load-more { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 28px 0; color: var(--muted); font-size: 13px; }
+.discovery-back-top { position: fixed; right: 28px; bottom: 28px; z-index: 20; box-shadow: 0 4px 18px #0002; }

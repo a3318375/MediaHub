@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"media-center/internal/animesync"
-	"media-center/internal/download"
-	"media-center/internal/store"
+	"mediahub/internal/animesync"
+	"mediahub/internal/download"
+	"mediahub/internal/store"
 )
 
 func TestDownloadsAuthenticatedSharedQueueAndCancellation(t *testing.T) {

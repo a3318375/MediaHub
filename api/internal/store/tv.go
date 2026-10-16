@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"media-center/internal/tv"
+	"mediahub/internal/tv"
 )
 
 func (s *Store) ListTV() ([]tv.Subscription, error) {
@@ -51,13 +51,30 @@ func (s *Store) CreateTV(d tv.Draft) (tv.Subscription, error) {
 	if err := tv.Validate(&d); err != nil {
 		return tv.Subscription{}, err
 	}
+	tx, err := s.db.Begin()
+	if err != nil {
+		return tv.Subscription{}, err
+	}
+	defer tx.Rollback()
+	var conflicts int
+	if d.Season == 0 {
+		err = tx.QueryRow("SELECT COUNT(*) FROM tv_subscriptions WHERE id LIKE ?", "tmdb-"+d.TMDBID+"-s%").Scan(&conflicts)
+	} else {
+		err = tx.QueryRow("SELECT COUNT(*) FROM tv_subscriptions WHERE id=?", "tmdb-"+d.TMDBID+"-s0").Scan(&conflicts)
+	}
+	if err != nil {
+		return tv.Subscription{}, err
+	}
+	if conflicts > 0 {
+		return tv.Subscription{}, ErrSubscriptionExists
+	}
 	id := fmt.Sprintf("tmdb-%s-s%d", d.TMDBID, d.Season)
 	v := tv.Subscription{Draft: d, ID: id, Revision: 1, Episodes: []tv.Episode{}, Resources: []tv.Candidate{}, CreatedAt: time.Now().UTC().Format(time.RFC3339Nano)}
 	data, err := json.Marshal(v)
 	if err != nil {
 		return v, err
 	}
-	result, err := s.db.Exec(`INSERT INTO tv_subscriptions(id,data) VALUES(?,?) ON CONFLICT(id) DO NOTHING`, id, data)
+	result, err := tx.Exec(`INSERT INTO tv_subscriptions(id,data) VALUES(?,?) ON CONFLICT(id) DO NOTHING`, id, data)
 	if err != nil {
 		return v, err
 	}
@@ -65,7 +82,7 @@ func (s *Store) CreateTV(d tv.Draft) (tv.Subscription, error) {
 	if n == 0 {
 		return v, ErrSubscriptionExists
 	}
-	return v, nil
+	return v, tx.Commit()
 }
 
 func (s *Store) SaveTVRefresh(v tv.Subscription) (tv.Subscription, error) {

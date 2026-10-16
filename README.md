@@ -64,7 +64,7 @@
 
 ```yaml
 services:
-  media-center:
+  mediahub:
     image: ghcr.io/a3318375/mediahub:latest
     ports:
       - "5173:18080"

@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"media-center/internal/download"
-	"media-center/internal/organize"
-	"media-center/internal/pan115"
+	"mediahub/internal/download"
+	"mediahub/internal/organize"
+	"mediahub/internal/pan115"
 )
 
 func TestTVUsesPublicDownloadWithSeasonContextAndDedup(t *testing.T) {

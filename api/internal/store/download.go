@@ -8,8 +8,8 @@ import (
 	"errors"
 	"time"
 
-	"media-center/internal/download"
-	"media-center/internal/pan115"
+	"mediahub/internal/download"
+	"mediahub/internal/pan115"
 )
 
 func scanDownload(row interface{ Scan(...any) error }) (download.Task, error) {

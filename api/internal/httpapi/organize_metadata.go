@@ -3,10 +3,10 @@ package httpapi
 import (
 	"context"
 	"fmt"
-	"media-center/internal/discovery"
-	"media-center/internal/download"
-	"media-center/internal/organize"
-	"media-center/internal/pan115"
+	"mediahub/internal/discovery"
+	"mediahub/internal/download"
+	"mediahub/internal/organize"
+	"mediahub/internal/pan115"
 	"strconv"
 )
 

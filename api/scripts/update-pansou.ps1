@@ -38,7 +38,7 @@ foreach ($relative in $allowed) {
  $snapshot[$path] = [IO.File]::ReadAllBytes($path)
 }
 $changed = $false
-$buildFile = Join-Path $env:TEMP ('media-center-update-' + [Guid]::NewGuid().ToString('N') + '.exe')
+$buildFile = Join-Path $env:TEMP ('mediahub-update-' + [Guid]::NewGuid().ToString('N') + '.exe')
 Push-Location $repo
 try {
  if (-not $VerifyOnly) {

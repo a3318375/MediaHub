@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"media-center/internal/media"
+	"mediahub/internal/media"
 	"net/http"
 	"net/url"
 	"strconv"

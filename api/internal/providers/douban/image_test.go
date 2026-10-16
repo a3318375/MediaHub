@@ -3,8 +3,8 @@ package douban
 import (
 	"context"
 	"errors"
-	"media-center/internal/discovery"
-	"media-center/internal/providers/transport"
+	"mediahub/internal/discovery"
+	"mediahub/internal/providers/transport"
 	"net/http"
 	"net/http/httptest"
 	"strings"

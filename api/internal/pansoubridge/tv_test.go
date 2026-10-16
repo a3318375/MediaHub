@@ -8,7 +8,7 @@ import (
 
 	"pansou/model"
 
-	"media-center/internal/tv"
+	"mediahub/internal/tv"
 )
 
 type tvSearchFixture struct{ captureSearch }

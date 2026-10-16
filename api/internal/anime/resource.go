@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"media-center/internal/download"
+	"mediahub/internal/download"
 )
 
 // DescribeResource never promotes a release detail page to a downloadable file.

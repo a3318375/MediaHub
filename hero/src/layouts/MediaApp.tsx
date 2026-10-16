@@ -22,7 +22,7 @@ import { navigationItems } from "../lib/parity";
 
 import { Login } from "../mocks/DemoLogin";
 
-import { save, SESSION } from "../lib/media-service";
+import { isDemoEntry, save, SESSION } from "../lib/media-service";
 
 import { dateCN, Empty, errorText } from "../components/media/MediaUI";
 
@@ -113,7 +113,7 @@ export default function MediaApp() {
   } = useMediaWorkspace();
   if (!session)
     return liveLogin ? (
-      <LiveLogin onLogin={login} onDemo={() => setLiveLogin(false)} />
+      <LiveLogin onLogin={login} onDemo={isDemoEntry() ? () => setLiveLogin(false) : undefined} />
     ) : (
       <>
         <Login
@@ -158,7 +158,7 @@ export default function MediaApp() {
           dark={dark}
           setDark={setDark}
         />
-        <main className="media-main">
+        <main className="media-main" data-page={page}>
           {detail && (
             <Detail
               media={detail}
@@ -208,18 +208,7 @@ export default function MediaApp() {
               </div>
               {(page === "subscriptions" || page === "calendar") && (
                 <Button
-                  onPress={() =>
-                    setEdit({
-                      tmdbId: "",
-                      title: "",
-                      season: 1,
-                      source: "pansou",
-                      enabled: true,
-                      channels: [],
-                      match: "",
-                      exclude: "",
-                    })
-                  }
+                  onPress={() => { go("discover"); notify("请在作品详情中点击订阅此剧"); }}
                 >
                   <Plus size={16} />
                   添加订阅
@@ -380,7 +369,7 @@ export default function MediaApp() {
                       setEdit({
                         tmdbId: m.sourceId,
                         title: m.title,
-                        season: 1,
+                        season: 0,
                         source: "pansou",
                         enabled: true,
                         channels: [],
@@ -422,18 +411,7 @@ export default function MediaApp() {
                   download={(tv, resource) => setTVDownload({ tv, resource })}
                   edit={setEdit}
                   action={tvAction}
-                  add={() =>
-                    setEdit({
-                      tmdbId: "",
-                      title: "",
-                      season: 1,
-                      source: "pansou",
-                      enabled: true,
-                      channels: [],
-                      match: "",
-                      exclude: "",
-                    })
-                  }
+                  add={() => { go("discover"); notify("请在作品详情中点击订阅此剧"); }}
                 />
               ))}
             {page === "calendar" && (
@@ -495,7 +473,7 @@ export default function MediaApp() {
               title: tvDownload.tv.title,
               provider: "tmdb",
               providerId: tvDownload.tv.tmdbId,
-              season: tvDownload.tv.season,
+              season: tvDownload.resource.season || tvDownload.tv.season || 1,
               episodes: tvDownload.resource.collectionEnd
                 ? undefined
                 : [tvDownload.resource.episode],

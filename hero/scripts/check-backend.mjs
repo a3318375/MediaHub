@@ -1,5 +1,5 @@
 // Real HTTP integration against a disposable backend, never the user's database.
-// Start the Go server with a fresh MEDIA_CENTER_DATA_DIR on port 18081 first.
+// Start the Go server with a fresh MEDIAHUB_DATA_DIR on port 18081 first.
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import ts from "typescript";
@@ -37,7 +37,7 @@ const storage = new Map();
 globalThis.sessionStorage = { getItem: (k) => storage.get(k) ?? null };
 globalThis.localStorage = { getItem: () => null };
 globalThis.window = { dispatchEvent: () => true };
-const { request, service, discoveryQuery } = await load("media-service");
+const { request, service, discoveryQuery } = await load("lib/media-service");
 // The adapters use only getItem. No credentials or session tokens are printed.
 const { settingsApi } = await load("lib/settings-api");
 const { animeApi, emptyAnimeDraft } = await load("lib/anime-api");

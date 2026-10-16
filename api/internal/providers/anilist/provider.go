@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"media-center/internal/discovery"
-	"media-center/internal/media"
-	"media-center/internal/providers/transport"
+	"mediahub/internal/discovery"
+	"mediahub/internal/media"
+	"mediahub/internal/providers/transport"
 	"net/http"
 	sortutil "sort"
 	"strconv"
@@ -79,7 +79,7 @@ func (p *Provider) graphql(ctx context.Context, query string, vars map[string]an
 			return discovery.Invalid()
 		}
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("User-Agent", "media-center/0.1")
+		req.Header.Set("User-Agent", "mediahub/0.1")
 		b, _, e := t.Do(req, transport.MaxBody)
 		if e != nil {
 			return e

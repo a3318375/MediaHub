@@ -8,8 +8,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"media-center/internal/store"
-	"media-center/internal/tv"
+	"mediahub/internal/store"
+	"mediahub/internal/tv"
 )
 
 // MountTV applies the same browser-session/API-key boundary as other application APIs.
@@ -25,7 +25,7 @@ func MountTV(router *gin.Engine, db *store.Store, service *tv.Service) {
 			message = "追剧订阅不存在"
 		case errors.Is(err, store.ErrSubscriptionExists):
 			status = 409
-			message = "这一季已经订阅"
+			message = "该剧或季度已经订阅"
 		case errors.Is(err, tv.ErrBusy):
 			status = 409
 			message = err.Error()

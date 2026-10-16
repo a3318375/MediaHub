@@ -34,8 +34,8 @@ export function AnimeBrowseStep({
     session.mode === "live" &&
     draft.source !== "other" && (
       <>
-        <form
-          className="management-stack"
+        {!selected && <form
+          className="anime-browse-toolbar"
           onSubmit={(e) => {
             e.preventDefault();
             void browse();
@@ -45,25 +45,15 @@ export function AnimeBrowseStep({
           <SelectField
             label="播出季度"
             value={season}
-            options={[["", "全部"], ...seasons.map((s) => [s, s])]}
+            options={[["", "全部"], ...Array.from(new Set(seasons)).map((s) => [s, s])]}
             onChange={setSeason}
           />
           <Button type="submit">查询</Button>
           <Button variant="secondary" onPress={() => void browse(true)}>
             刷新来源
           </Button>
-        </form>
-        <Button
-          variant="ghost"
-          onPress={() => {
-            if (selected) {
-              setSelected(null);
-              setGroups([]);
-            } else setStep("source");
-          }}
-        >
-          返回{selected ? "番剧" : "来源"}
-        </Button>
+        </form>}
+
         {!busy && !catalog.length && (
           <Empty>没有找到番剧，请查询或刷新来源。</Empty>
         )}
@@ -106,12 +96,12 @@ export function AnimeBrowseStep({
             </Button>
           </div>
         )}
-        {selected && <h3>{selected.title} · 选择字幕组</h3>}
+        {selected && <div className="anime-selection-heading"><h3>{selected.title}</h3><p>选择字幕组，下一步设置匹配版本</p></div>}
         {selected && !busy && !groups.length && (
           <Empty>没有找到字幕组，请返回选择其他番剧。</Empty>
         )}
         {groups.map((g) => (
-          <div key={g.url} className="management-card management-stack">
+          <div key={g.url} className="anime-group-card">
             <h4>{g.label}</h4>
             <details>
               <summary>查看发布记录（{g.items.length}）</summary>
@@ -130,10 +120,21 @@ export function AnimeBrowseStep({
                 setStep("match");
               }}
             >
-              添加
+              选择字幕组
             </Button>
           </div>
         ))}
+        <div className="anime-step-actions">        <Button
+          variant="secondary"
+          onPress={() => {
+            if (selected) {
+              setSelected(null);
+              setGroups([]);
+            } else setStep("source");
+          }}
+        >
+          返回{selected ? "番剧" : "来源"}
+        </Button><span className="anime-step-hint">{selected ? `${groups.length} 个字幕组` : `${catalog.length} 部番剧`}</span></div>
       </>
     )
   );

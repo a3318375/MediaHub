@@ -26,12 +26,13 @@ export function AnimeEditor({
   return (
     <Overlay
       title="添加动漫订阅"
+      wide={step !== "source"}
       onClose={() => {
         if (!running.current) close();
       }}
     >
-      <div className="management-stack">
-        <p role="status">
+      <div className="management-stack anime-editor">
+        <p role="status" className="anime-step-caption">
           {
             {
               source: "1 · 选择来源",

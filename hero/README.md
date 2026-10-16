@@ -49,7 +49,7 @@ pnpm --dir hero build
 ```powershell
 # 在 api 目录的独立终端中启动测试后端
 $env:HTTP_ADDR = '127.0.0.1:18081'
-$env:MEDIA_CENTER_DATA_DIR = Join-Path $PWD '../tmp/hero-integration'
+$env:MEDIAHUB_DATA_DIR = Join-Path $PWD '../tmp/hero-integration'
 ./scripts/dev.ps1
 
 # 在仓库根目录的另一个终端中执行

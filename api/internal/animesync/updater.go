@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"media-center/internal/anime"
+	"mediahub/internal/anime"
 )
 
 var ErrBusy = errors.New("该订阅正在刷新，请稍后再试")

@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"media-center/internal/store"
-	"media-center/internal/tv"
+	"mediahub/internal/store"
+	"mediahub/internal/tv"
 )
 
 func TestMissedMondayRetriesUntilThursdayThenWaitsForNextMonday(t *testing.T) {

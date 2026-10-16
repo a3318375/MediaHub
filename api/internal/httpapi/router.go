@@ -12,15 +12,15 @@ import (
 	"sync"
 	"time"
 
-	"media-center/internal/anime"
-	"media-center/internal/animesync"
-	"media-center/internal/discovery"
-	"media-center/internal/download"
-	"media-center/internal/organize"
-	"media-center/internal/pansoubridge"
-	"media-center/internal/providers/douban"
-	"media-center/internal/store"
-	"media-center/internal/tmdb"
+	"mediahub/internal/anime"
+	"mediahub/internal/animesync"
+	"mediahub/internal/discovery"
+	"mediahub/internal/download"
+	"mediahub/internal/organize"
+	"mediahub/internal/pansoubridge"
+	"mediahub/internal/providers/douban"
+	"mediahub/internal/store"
+	"mediahub/internal/tmdb"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -99,6 +99,15 @@ func NewRouterWithOrganizer(db *store.Store, updater *animesync.Updater, downloa
 	// and managed API keys. Feature modules (search, downloads, etc.) mount here.
 	v1 := router.Group("/api/v1", api.requireAPI())
 	v1.GET("/whoami", api.apiWhoAmI)
+	// Integration-key routes share the same services and persistence as the UI.
+	v1.GET("/media/providers", api.mediaProviders)
+	v1.GET("/media/discover", api.discoverMedia)
+	v1.GET("/media/rankings", api.mediaRankings)
+	v1.GET("/media/rankings/platforms", api.rankingPlatforms)
+	v1.GET("/media/:source/:sourceId", api.detailMedia)
+	v1.GET("/settings/:section", api.getSettings)
+	v1.PUT("/settings/:section", api.putSettings)
+	v1.GET("/logs", api.listLogs)
 	api.mountAnime(v1)
 	api.mountDownloads(v1)
 	api.mountOrganize(v1)
@@ -232,7 +241,8 @@ func (a *API) requireUser() gin.HandlerFunc {
 }
 
 // requireAPI allows either a browser session or a managed integration key.
-// Keep account, setup, key-management and settings routes behind requireUser.
+// Account, setup, key-management and secret reveal remain session-only.
+// Versioned business settings accept managed integration keys.
 func (a *API) requireAPI() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		header := strings.TrimSpace(c.GetHeader("Authorization"))

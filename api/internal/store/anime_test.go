@@ -3,7 +3,7 @@ package store
 import (
 	"encoding/json"
 	"errors"
-	"media-center/internal/anime"
+	"mediahub/internal/anime"
 	"strings"
 	"testing"
 )

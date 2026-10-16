@@ -1,0 +1,45 @@
+.anime-editor { gap: 18px; }
+.anime-editor .anime-step-caption { color: var(--muted); font-size: 13px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
+.anime-step-hint, .anime-selection-heading p { color: var(--muted); font-size: 13px; line-height: 1.6; }
+.anime-editor h3 { font-size: 16px; font-weight: 650; }
+.anime-step-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 18px; margin-top: 8px; border-top: 1px solid var(--border); }
+.anime-step-actions-end { justify-content: flex-end; }
+.anime-browse-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) 155px auto auto; align-items: end; gap: 10px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.anime-editor .anime-catalog-list { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 390px; gap: 8px; }
+.anime-editor .anime-catalog-item { border: 1px solid var(--border); padding: 10px; }
+.anime-editor .anime-catalog-item > span { font-size: 13px; line-height: 1.5; }
+.anime-editor .anime-catalog-item small { font-size: 11px; white-space: nowrap; }
+.anime-selection-heading { display: flex; flex-direction: column; gap: 5px; }
+.anime-group-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; }
+.anime-group-card h4 { align-self: center; font-size: 14px; font-weight: 600; }
+.anime-group-card > button { grid-column: 2; grid-row: 1; }
+.anime-group-card details { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.anime-group-card summary { cursor: pointer; }
+.anime-group-card details p { margin-top: 10px; padding: 10px 0; border-top: 1px solid var(--border); overflow-wrap: anywhere; line-height: 1.6; }
+.anime-rule-card { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: border-color .15s, background .15s; }
+.anime-rule-card:hover { background: var(--surface-secondary); }
+.anime-rule-card.is-selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.anime-editor .anime-rule-card input[type=radio] { width: 17px; height: 17px; min-height: 0; margin: 0; flex: 0 0 17px; accent-color: var(--accent); }
+.anime-rule-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; }
+.anime-rule-tag { padding: 4px 9px; border-radius: 6px; background: var(--surface-secondary); font-size: 12px; }
+@media (max-width: 600px) {
+  .anime-browse-toolbar { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .anime-editor .anime-catalog-list { grid-template-columns: 1fr; max-height: 340px; }
+}
+.anime-editor-modal { width: min(860px, calc(100vw - 32px)); max-width: 860px; }
+.tv-subscription-summary { padding: 14px 16px; border: 1px solid var(--border); background: var(--surface-secondary); border-radius: 12px; display: flex; flex-direction: column; gap: 6px; }
+.tv-subscription-summary h3 { font-size: 17px; font-weight: 650; }
+.tv-subscription-summary > span { color: var(--muted); font-size: 12px; }
+.tv-source-field { display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+.tv-source-tags { display: flex; flex-wrap: wrap; gap: 8px; border: 1px solid var(--border); border-radius: 10px; padding: 10px; align-items: center; }
+.tv-source-tags > input { flex: 1; min-width: 200px; border: 0; outline: none; padding: 5px 2px; background: transparent; color: var(--foreground); font: inherit; }
+.tv-source-tags:focus-within { border-color: var(--accent); }
+.tv-source-tag { display: inline-flex; gap: 6px; max-width: 100%; padding: 5px 8px; height: auto; }
+.tv-source-tag button { cursor: pointer; padding: 0 3px; font-size: 14px; border-radius: 4px; }
+.tv-source-tag button:hover { background: var(--surface-secondary); }
+.tv-source-order { opacity: .6; font-size: 11px; }
+.tv-advanced > summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+.tv-advanced[open] > .management-stack { margin-top: 14px; }
+.detail-season-summary { padding-top: 12px; margin-top: 6px; border-top: 1px solid var(--border); }
+.detail-season-summary h3 { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.detail-season-summary dl > div { padding: 8px 0; }

@@ -1,4 +1,4 @@
-module media-center
+module mediahub
 
 go 1.26.0
 

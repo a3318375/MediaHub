@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"media-center/internal/download"
-	"media-center/internal/pan115"
-	"media-center/internal/store"
+	"mediahub/internal/download"
+	"mediahub/internal/pan115"
+	"mediahub/internal/store"
 )
 
 func downloadFailure(c *gin.Context, err error) {

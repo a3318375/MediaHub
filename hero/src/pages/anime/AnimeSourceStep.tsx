@@ -44,36 +44,18 @@ export function AnimeSourceStep({
           setSeason("");
         }}
       />
-      {draft.source === "other" && (
-        <Field
-          label="Bangumi ID"
-          value={draft.bangumiId}
-          onChange={(v) => change("bangumiId", v)}
-          required
-        />
-      )}
-      <Field
-        label="主 RSS 地址"
-        value={draft.url}
-        onChange={(v) => change("url", v)}
-      />
-      <div className="management-actions">
-        <Button
-          variant="secondary"
-          isDisabled={draft.source === "other"}
-          onPress={() => void browse()}
-        >
-          浏览来源
-        </Button>
-        <Button
-          isDisabled={
-            !draft.url.trim() ||
-            (draft.source === "other" && !draft.bangumiId.trim())
-          }
+      {draft.source === "other" && <>
+        <Field label="Bangumi ID" value={draft.bangumiId} onChange={(v) => change("bangumiId", v)} required />
+        <Field label="主 RSS 地址" value={draft.url} onChange={(v) => change("url", v)} placeholder="https://…/rss" required />
+      </>}
+      <p className="anime-step-hint">{draft.source === "other"
+        ? "填写 RSS 地址和 Bangumi ID，解析后确认订阅参数。"
+        : "浏览番剧片库，选择字幕组与匹配版本。"}</p>
+      <div className="anime-step-actions anime-step-actions-end">
+        {draft.source === "other" ? <Button
+          isDisabled={!draft.url.trim() || !draft.bangumiId.trim()}
           onPress={() => void resolve(draft)}
-        >
-          下一步
-        </Button>
+        >解析 RSS</Button> : <Button onPress={() => void browse()}>浏览来源</Button>}
       </div>
     </>
   );

@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/gin-gonic/gin"
-	"media-center/internal/store"
+	"mediahub/internal/store"
 	"net/http/httptest"
 	"pansou/model"
 	"sync/atomic"

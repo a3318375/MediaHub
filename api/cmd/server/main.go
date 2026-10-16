@@ -12,15 +12,15 @@ import (
 	"syscall"
 	"time"
 
-	"media-center/internal/anime"
-	"media-center/internal/animesync"
-	"media-center/internal/download"
-	"media-center/internal/httpapi"
-	"media-center/internal/organize"
-	"media-center/internal/pansoubridge"
-	"media-center/internal/store"
-	"media-center/internal/tmdb"
-	"media-center/internal/tv"
+	"mediahub/internal/anime"
+	"mediahub/internal/animesync"
+	"mediahub/internal/download"
+	"mediahub/internal/httpapi"
+	"mediahub/internal/organize"
+	"mediahub/internal/pansoubridge"
+	"mediahub/internal/store"
+	"mediahub/internal/tmdb"
+	"mediahub/internal/tv"
 )
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 }
 
 func run() error {
-	dataDir := os.Getenv("MEDIA_CENTER_DATA_DIR")
+	dataDir := os.Getenv("MEDIAHUB_DATA_DIR")
 	if dataDir == "" {
 		dataDir = "./data"
 	}
@@ -96,7 +96,7 @@ func run() error {
 	defer func() { stopTV(); <-tvDone }()
 	handler := httpapi.NewRouterWithOrganizer(db, updater, downloads, organizer, search.Handler(), search.MetaHandler(), search.CheckHandler())
 	httpapi.MountTV(handler, db, tvUpdater)
-	if staticDir := os.Getenv("MEDIA_CENTER_WEB_DIR"); staticDir != "" {
+	if staticDir := os.Getenv("MEDIAHUB_WEB_DIR"); staticDir != "" {
 		if err := httpapi.MountFrontend(handler, staticDir); err != nil {
 			return err
 		}
@@ -114,7 +114,7 @@ func run() error {
 	stopped := make(chan os.Signal, 1)
 	signal.Notify(stopped, os.Interrupt, syscall.SIGTERM)
 	defer signal.Stop(stopped)
-	log.Printf("media-center API listening on %s (data: %s)", addr, dataDir)
+	log.Printf("mediahub API listening on %s (data: %s)", addr, dataDir)
 
 	select {
 	case err := <-serverDone:

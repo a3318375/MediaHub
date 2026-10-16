@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"github.com/gin-gonic/gin"
-	"media-center/internal/store"
+	"mediahub/internal/store"
 	"net/http/httptest"
 	"strings"
 	"testing"

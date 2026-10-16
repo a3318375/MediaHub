@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"media-center/internal/anime"
-	"media-center/internal/download"
+	"mediahub/internal/anime"
+	"mediahub/internal/download"
 )
 
 func TestAnimeCandidatesAreTransactionalAndSurviveDisplayTruncation(t *testing.T) {

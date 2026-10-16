@@ -117,12 +117,11 @@ export function AnimeSubscriptions({
             : !i.enabled)),
   );
   return (
-    <section className="management-stack">
+    <section className="management-stack anime-subscription-page">
       <div className="media-section-heading">
-        <h2>
-          动漫订阅 <small>{items.length} 部</small>
-        </h2>
-        <div className="management-actions">
+        <div className="anime-page-title"><h1>动漫订阅 <small>{items.length} 部</small></h1><p>管理番剧更新、字幕组与自动下载。</p></div>
+        <div className="management-actions anime-page-tools">
+          <Field label="搜索订阅" value={query} onChange={setQuery} placeholder="搜索订阅…" />
           <Button
             variant="secondary"
             isDisabled={loading}
@@ -137,7 +136,7 @@ export function AnimeSubscriptions({
           </Button>
         </div>
       </div>
-      <Field label="搜索订阅" value={query} onChange={setQuery} />
+
       <FilterTabs
         label="更新日"
         value={weekday}
