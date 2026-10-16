@@ -415,23 +415,25 @@ export default function MediaApp() {
                 />
               ))}
             {page === "calendar" && (
-              <>
-                <Calendar
-                  items={subscriptions}
-                  edit={setEdit}
-                  download={(tv, resource) => setTVDownload({ tv, resource })}
-                />
-                <div className="media-section-heading">
-                  <h2>我的追剧 · {subscriptions.length}</h2>
-                </div>
-                <TVList
-                  items={subscriptions}
-                  edit={setEdit}
-                  action={tvAction}
-                  download={(tv, resource) => setTVDownload({ tv, resource })}
-                  add={() => go("discover")}
-                />
-              </>
+              <TVList
+                items={subscriptions}
+                loading={tvLoading}
+                edit={setEdit}
+                action={tvAction}
+                download={(tv, resource) => setTVDownload({ tv, resource })}
+                add={() => { go("discover"); notify("请在作品详情中点击订阅此剧"); }}
+                calendar={<Calendar items={subscriptions} edit={setEdit} download={(tv, resource) => setTVDownload({ tv, resource })} />}
+                refresh={async () => {
+                  if (!api) return;
+                  setTVLoading(true);
+                  const version = ++tvVersion.current;
+                  try {
+                    const result = await api.tv();
+                    if (version === tvVersion.current) setSubscriptions(result);
+                  } catch (e) { setError(errorText(e)); }
+                  finally { setTVLoading(false); }
+                }}
+              />
             )}
             {page === "downloads" && (
               <Downloads

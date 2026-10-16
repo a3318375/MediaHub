@@ -1,0 +1,42 @@
+.emby-dashboard { gap: 16px; }
+.emby-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.emby-overview { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px; }
+.emby-overview h2 { font-size: 15px; font-weight: 650; }
+.emby-overview > span { color: var(--muted); font-size: 11px; }
+.emby-dashboard > .media-filter { padding: 0; }
+.emby-dashboard > .media-stat-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin: 0 0 8px; }
+.emby-dashboard .media-stat { padding: 16px 18px; gap: 12px; border: 1px solid var(--border); border-radius: 12px; box-shadow: none; }
+.emby-stat-label { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; }
+.emby-stat-label svg { flex-shrink: 0; opacity: .75; }
+.emby-dashboard .media-stat strong { font-size: 27px; font-variant-numeric: tabular-nums; letter-spacing: -.6px; }
+.emby-dashboard > .media-section-heading { margin: 8px 0 0; }
+.emby-dashboard h2 { font-size: 15px; font-weight: 650; }
+.emby-dashboard .emby-library-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
+.emby-dashboard .emby-library-card { display: block; width: 100%; min-width: 0; height: auto; padding: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--foreground); text-align: left; white-space: normal; overflow: hidden; transition: border-color .15s, box-shadow .15s; }
+.emby-dashboard .emby-library-card:hover { border-color: color-mix(in srgb, var(--accent) 55%, var(--border)); box-shadow: 0 4px 16px #00000012; }
+.emby-dashboard .emby-library-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.emby-library-cover { position: relative; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: var(--surface-secondary); }
+.emby-library-cover > img, .emby-library-cover > .poster-placeholder { display: block; width: 100%; height: 100%; object-fit: cover; }
+.emby-library-cover > .poster-placeholder { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 10%, var(--surface)), var(--surface-secondary)); color: var(--muted); }
+.emby-library-cover .poster-placeholder strong { display: none; }
+.emby-library-selected { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-foreground); }
+.emby-library-caption { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; }
+.emby-library-caption strong { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.emby-library-caption > span { color: var(--muted); font-size: 11px; flex-shrink: 0; }
+.emby-dashboard > .management-stack { margin-top: 10px; }
+@media (max-width: 1200px) { .emby-dashboard > .media-stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .emby-dashboard > .media-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .emby-dashboard .media-stat { padding: 14px; }
+  .emby-overview { gap: 4px; flex-direction: column; }
+  .emby-dashboard .emby-library-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .emby-library-caption { align-items: start; flex-direction: column; gap: 4px; padding: 10px; }
+  .emby-library-caption strong { max-width: 100%; }
+}
+.emby-activity-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 28px; margin-top: 12px; }
+.emby-activity-section { min-width: 0; }
+.emby-activity-section > .poster-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 12px; align-items: start; }
+.emby-activity-section .poster-card > small { display: block; color: var(--muted); font-size: 11px; margin-top: 5px; }
+.emby-activity-section progress { display: block; width: 100%; height: 4px; margin-top: 8px; accent-color: var(--accent); }
+@media (min-width: 1700px) { .emby-activity-section > .poster-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 1000px) { .emby-activity-grid { grid-template-columns: minmax(0, 1fr); gap: 28px; } }

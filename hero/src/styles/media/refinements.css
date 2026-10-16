@@ -1,0 +1,94 @@
+/* Shared type and surface tokens for the live media workspace. */
+:root {
+  --background: #f7f8fa;
+  --foreground: #242429;
+  --surface: #ffffff;
+  --surface-secondary: #f0f1f4;
+  --surface-tertiary: #e7e9ee;
+  --field-background: #ffffff;
+  --field-foreground: var(--foreground);
+  --muted: #707079;
+  --border: #e6e7ec;
+  --workspace-chrome: #fcfcfd;
+  --workspace-shadow: 0 1px 3px #18181b06, 0 1px 2px #18181b04;
+}
+:root.dark {
+  --background: #121214;
+  --foreground: #ededf0;
+  --surface: #1d1d21;
+  --surface-secondary: #27272c;
+  --surface-tertiary: #323238;
+  --field-background: #222227;
+  --field-foreground: var(--foreground);
+  --muted: #a2a2ad;
+  --border: #303036;
+  --workspace-chrome: #18181b;
+  --workspace-shadow: 0 1px 3px #00000014;
+}
+.media-shell { font-family: var(--font-sans); line-height: 1.6; letter-spacing: 0; }
+.media-sidebar, .media-topbar { background: var(--workspace-chrome); }
+.media-sidebar nav button, .media-sidebar-bottom > button { font-size: 14px; font-weight: 450; }
+.media-sidebar nav button.active { font-weight: 600; }
+.media-brand small { font-size: 11px; letter-spacing: .3px; }
+.media-nav-label { font-size: 12px; }
+.media-main .media-heading h1 { font-size: 24px; line-height: 1.4; font-weight: 600; letter-spacing: -.025em; margin: 0 0 6px; }
+.media-main .media-heading { margin-bottom: 20px; }
+.media-main .media-heading p { font-size: 13px; line-height: 1.7; }
+.media-main .anime-page-title h1 { font-weight: 600; letter-spacing: -.025em; }
+.media-main .anime-page-title p { font-size: 13px; line-height: 1.7; }
+.media-main .media-section-heading h2, .media-main .emby-dashboard h2 { font-size: 15px; line-height: 1.5; font-weight: 600; letter-spacing: 0; }
+.media-shell .card { box-shadow: var(--workspace-shadow); border-radius: 14px; }
+.media-shell .button { font-weight: 500; letter-spacing: 0; }
+.media-shell .poster-title { font-size: 13px; font-weight: 500; line-height: 1.6; margin-top: 9px; }
+.media-shell .poster-meta { font-size: 12px; line-height: 1.5; margin-top: 4px; }
+.media-shell .poster-art { border-radius: 10px; }
+.media-shell .management-field > span { font-size: 13px; line-height: 1.5; }
+.media-shell .management-card > h2 { font-size: 17px; font-weight: 600; }
+.media-shell .management-card > h3 { font-weight: 600; }
+.media-shell .emby-library-caption strong { font-weight: 500; }
+.media-shell .emby-library-caption > span, .media-shell .emby-overview > span { font-size: 12px; }
+.media-shell .emby-stat-label { font-size: 13px; }
+.media-shell .emby-dashboard .media-stat strong { font-weight: 600; }
+@media (max-width: 700px) {
+  .media-main .media-heading h1 { font-size: 22px; }
+  .media-main .media-heading p, .media-main .anime-page-title p { font-size: 12px; }
+  .media-shell .poster-meta { font-size: 11px; }
+}
+/* Keep the search form in flow so it cannot overlap wrapped filter rows. */
+@media (min-width: 1100px) {
+  .media-main[data-page="discover"] .media-query { position: static; width: 100%; margin: 8px 0 0; }
+  .media-main[data-page="discover"] .media-heading > div { max-width: none; }
+}
+/* Navigation labels remain more prominent than supporting captions. */
+.media-sidebar nav button,
+.media-sidebar-bottom > button { color: color-mix(in srgb, var(--foreground) 80%, var(--muted)); }
+.media-sidebar nav button > svg,
+.media-sidebar-bottom > button > svg { color: var(--muted); }
+.media-sidebar nav button.active,
+.media-sidebar nav button.active:hover { color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.media-sidebar nav button.active > svg { color: currentColor; }
+.media-main[data-page="calendar"] { padding-top: 20px; }
+.media-main[data-page="calendar"] > div > .media-heading { display: none; }
+.tv-card-placeholder { display: grid; place-items: center; width: 100%; height: 100%; position: absolute; inset: 0; color: #ffffff80; }
+.tv-subscription-card .anime-card-cover { border: 0; padding: 0; cursor: pointer; }
+.tv-card-progress { flex-wrap: wrap; }
+.tv-subscription-card .anime-card-body { flex: 1; }
+.tv-subscription-card .anime-card-actions { margin-top: auto; flex-wrap: wrap; }
+.tv-subscription-card .media-note { font-size: 11px; line-height: 1.6; }
+.tv-subscription-card details { font-size: 12px; }
+.tv-subscription-card summary { cursor: pointer; color: var(--accent); }
+.tv-subscription-card .management-row { flex-wrap: wrap; gap: 8px; }
+.tv-subscription-card .subscription-resource { overflow-wrap: anywhere; }
+@media (max-width: 700px) { .media-main[data-page="calendar"] { padding: 16px 16px 28px; } }
+.tv-subscription-card .anime-card-body { gap: 7px; padding: 12px; }
+.tv-card-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.tv-card-summary button { border: 0; padding: 0; background: none; color: var(--accent); font-size: inherit; }
+.tv-card-warning { color: var(--danger); font-size: 11px; }
+.tv-subscription-card .tv-card-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 28px 28px; gap: 2px; padding-top: 5px; }
+.tv-card-actions .button { min-width: 0; padding: 0 4px; height: 28px; font-size: 12px; }
+.tv-card-actions .button--icon-only { width: 28px; }
+.tv-subscription-page .tv-subscription-card { gap: 0; }
+.tv-subscription-page .tv-subscription-card .anime-card-body { padding: 10px 12px 8px; gap: 4px; }
+.tv-subscription-card .anime-card-title { line-height: 1.4; }
+.tv-subscription-card .tv-card-meta { line-height: 1.4; margin: 0; }
+.tv-subscription-page .tv-subscription-card .tv-card-actions { margin-top: 2px; padding-top: 0; }

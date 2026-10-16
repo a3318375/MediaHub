@@ -1,5 +1,5 @@
 import { Button, Card } from "@heroui/react";
-import { Film } from "lucide-react";
+import { Film, Tv, Clapperboard, Play, Users, Clock, RefreshCw, Check } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   Empty,
@@ -148,14 +148,16 @@ export function Emby({
     };
   }
   return (
-    <section className="management-stack">
-      <div className="media-section-heading">
-        <h2>Emby 媒体库</h2>
+    <section className="management-stack emby-dashboard">
+      <div className="emby-toolbar">
+        <div className="emby-overview"><h2>媒体概览</h2>{data && <span>更新于 {time(data.updatedAt)}</span>}</div>
         <Button
           variant="secondary"
+          size="sm"
           isDisabled={busy || session.mode === "demo"}
           onPress={() => setRevision((n) => n + 1)}
         >
+          <RefreshCw size={14} className={busy ? "emby-syncing" : undefined} />
           {busy ? "读取中…" : "同步媒体库"}
         </Button>
       </div>
@@ -166,7 +168,6 @@ export function Emby({
         </Empty>
       ) : data ? (
         <>
-          <small>更新于 {time(data.updatedAt)}</small>
           {data.warnings.map((w, i) => (
             <Notice key={i} error={w} />
           ))}
@@ -180,17 +181,17 @@ export function Emby({
             }}
           />
           <div className="media-stat-grid">
-            {[
-              ["movies", "电影"],
-              ["series", "剧集"],
-              ["episodes", "总集数"],
-              ["plays", "播放次数"],
-              ["viewers", "活跃观众"],
-              ["hours", "观看时长（小时）"],
-            ].map(([key, label]) => (
+            {([
+              ["movies", "电影", Film],
+              ["series", "剧集", Tv],
+              ["episodes", "总集数", Clapperboard],
+              ["plays", "播放次数", Play],
+              ["viewers", "活跃观众", Users],
+              ["hours", "观看时长（小时）", Clock],
+            ] as const).map(([key, label, Icon]) => (
               <Card key={key} className="media-stat">
-                <span>{label}</span>
-                <strong>{data.stats[site]?.[key] ?? "—"}</strong>
+                <div className="emby-stat-label"><span>{label}</span><Icon size={16} aria-hidden="true" /></div>
+                <strong>{data.stats[site]?.[key]?.toLocaleString() ?? "—"}</strong>
               </Card>
             ))}
           </div>
@@ -206,25 +207,24 @@ export function Emby({
             {data.libraries
               .filter((l) => site === "all" || l.siteId === site)
               .map((l) => (
-                <Button
+                <button
+                  type="button"
                   key={l.id}
                   className="emby-library-card"
                   aria-pressed={library === l.id}
-                  variant={library === l.id ? "primary" : "secondary"}
-                  onPress={() => setLibrary(library === l.id ? "" : l.id)}
+                  onClick={() => setLibrary(library === l.id ? "" : l.id)}
                 >
-                  <EmbyArtwork id={l.id} title={l.title} session={session} />
-                  <span>
-                    {l.title} · {l.count}
-                  </span>
-                </Button>
+                  <div className="emby-library-cover"><EmbyArtwork id={l.id} title={l.title} session={session} />{library === l.id && <span className="emby-library-selected"><Check size={14} /></span>}</div>
+                  <div className="emby-library-caption"><strong>{l.title}</strong><span>{l.count.toLocaleString()} 部作品</span></div>
+                </button>
               ))}
           </div>
+          <div className="emby-activity-grid">
           {[
             ["最近入库", visible(data.recentlyAdded)],
             ["继续播放", visible(data.continueWatching)],
           ].map(([title, items]) => (
-            <section className="management-stack" key={String(title)}>
+            <section className="management-stack emby-activity-section" key={String(title)}>
               <h2>{String(title)}</h2>
               {(items as Item[]).length ? (
                 <div className="poster-grid">
@@ -265,6 +265,7 @@ export function Emby({
               )}
             </section>
           ))}
+          </div>
         </>
       ) : !busy && !error ? (
         <Empty>Emby 尚未配置</Empty>
