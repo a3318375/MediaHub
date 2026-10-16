@@ -2,9 +2,9 @@
 FROM node:24-bookworm-slim AS frontend
 WORKDIR /web
 RUN npm install -g pnpm@10
-COPY --from=web package.json pnpm-lock.yaml ./
+COPY --from=hero package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 RUN pnpm install --frozen-lockfile
-COPY --from=web . .
+COPY --from=hero . .
 RUN pnpm build
 
 FROM golang:1.26-bookworm AS backend

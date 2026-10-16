@@ -34,7 +34,7 @@ jobs:
           context: ./api
           file: ./Dockerfile
           build-contexts: |
-            web=./web
+            hero=./hero
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

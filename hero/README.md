@@ -7,7 +7,7 @@ pnpm --dir hero install --frozen-lockfile
 pnpm --dir hero dev
 ```
 
-开发地址为 `http://127.0.0.1:5174`，`/api` 代理到 `http://127.0.0.1:18080`。生产构建运行 `pnpm --dir hero build`，将 `hero/dist` 交给现有后端静态文件服务即可。旧 `web` 前端和 Docker 默认构建入口仍保留。
+开发地址为 `http://127.0.0.1:5174`，`/api` 代理到 `http://127.0.0.1:18080`。生产构建运行 `pnpm --dir hero build`，将 `hero/dist` 交给现有后端静态文件服务即可。Docker 默认构建 `hero/`；旧 `web/` 作为历史实现保留。
 
 后端在另一个终端运行 `api/scripts/dev.ps1`，使用仓库根目录的 `data`。如需连接其他本地端口，在启动前设置 `VITE_API_PROXY_TARGET`；该变量只控制开发代理。
 

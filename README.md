@@ -148,7 +148,7 @@ pnpm dev
 
 访问 `http://127.0.0.1:5174/`。点击 **Use demo account** 填入账号，再点击 **Sign in**；演示账号为 `kate@acme.com`，密码为 `heroui123`。默认无需后端，示例影视和分享链接均标明为演示资料；订阅修改与演示下载记录保存在当前浏览器，不会执行真实资源搜索或下载。支持记住演示登录、退出、浅色/暗色主题和手机布局。字体、头像和基础来源图标保存在项目内。
 
-登录页点击 **连接已有 MediaHub 服务** 可使用原管理员账号连接真实 API；服务登录只保存在当前标签页。Vite 默认将 `/api` 代理至 `http://127.0.0.1:18080`，可在 `hero/vite.config.ts` 调整目标。服务模式接口失败会显示错误，不会混入演示结果。已有 TG / PanSou 调度与缓存策略保持由 Go 后端负责。资源搜索支持链接复制、115 整份分享转存和磁力离线任务；逐文件转存、动漫 RSS、媒体整理、Emby 专属页面、服务凭证配置及业务日志暂继续使用 `web/`。Docker 默认入口仍是原前端。
+登录页点击 **连接已有 MediaHub 服务** 可使用原管理员账号连接真实 API；服务登录只保存在当前标签页。Vite 默认将 `/api` 代理至 `http://127.0.0.1:18080`，可在 `hero/vite.config.ts` 调整目标。服务模式接口失败会显示错误，不会混入演示结果。已有 TG / PanSou 调度与缓存策略保持由 Go 后端负责。资源搜索支持链接复制、115 整份分享转存和磁力离线任务；逐文件转存、动漫 RSS、媒体整理、Emby 专属页面、服务凭证配置及业务日志暂继续使用 `web/`。Docker 默认入口已切换为 HeroUI 前端。
 
 `pnpm build` 执行类型检查并生成静态产物；`pnpm test` 检查缓存隔离、并发去重、API 错误、搜索契约与独立演示模式。
 
@@ -193,11 +193,11 @@ pnpm dev --host 127.0.0.1 --port 5173 --strictPort
 本地构建合并镜像，在仓库根目录执行：
 
 ```sh
-docker build -f Dockerfile --build-context web=./web -t mediahub:local ./api
+docker build -f Dockerfile --build-context hero=./hero -t mediahub:local ./api
 docker run --rm -p 5175:18080 -v mediahub-test-data:/data mediahub:local
 ```
 
-此试运行使用独立数据卷，访问 `http://localhost:5175`。推送 `main` 后，GitHub Actions 会自动构建并发布 `latest` 和提交版本镜像。
+此试运行使用独立数据卷，访问 `http://localhost:5175`。推送 `main` 时，只有最新提交信息包含 `[build]` 才会构建并发布 `latest` 和提交版本镜像；普通推送跳过构建。也可在 Actions → Build Docker image → Run workflow 手动发布。
 
 ## 致谢
 
