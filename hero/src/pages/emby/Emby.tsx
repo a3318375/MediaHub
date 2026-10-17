@@ -10,6 +10,7 @@ import {
 import { Notice } from "../../components/ui/ManagementUI";
 import type { MediaSummary } from "../../lib/media-contract";
 import { request, type Session } from "../../lib/media-service";
+import { embyDemoEnabled, embySites, embyStats, embyLibraries, recentlyAdded, continueWatching } from "../../mocks/emby-dashboard";
 type Item = {
   id: string;
   title: string;
@@ -49,6 +50,7 @@ function EmbyArtwork({
 }) {
   const [url, setURL] = useState("");
   useEffect(() => {
+    if (embyDemoEnabled || session.mode === "demo") return;
     const c = new AbortController();
     let objectURL = "";
     setURL("");
@@ -88,6 +90,7 @@ export function Emby({
   session: Session;
   open: (m: MediaSummary) => void;
 }) {
+  const demo = embyDemoEnabled || session.mode === "demo";
   const [data, setData] = useState<Dashboard | null>(null);
   const [site, setSite] = useState("all");
   const [library, setLibrary] = useState("");
@@ -98,7 +101,8 @@ export function Emby({
     let active = true;
     setBusy(true);
     setError("");
-    if (session.mode === "demo") {
+    if (demo) {
+      setData({ updatedAt: new Date().toISOString(), warnings: [], sites: [...embySites], stats: embyStats, libraries: [...embyLibraries], recentlyAdded, continueWatching });
       setBusy(false);
       return;
     }
@@ -118,7 +122,7 @@ export function Emby({
     return () => {
       active = false;
     };
-  }, [session, revision]);
+  }, [session, revision, demo]);
   const visible = (list: Item[]) =>
     list.filter(
       (i) =>
@@ -154,7 +158,7 @@ export function Emby({
         <Button
           variant="secondary"
           size="sm"
-          isDisabled={busy || session.mode === "demo"}
+          isDisabled={busy}
           onPress={() => setRevision((n) => n + 1)}
         >
           <RefreshCw size={14} className={busy ? "emby-syncing" : undefined} />
@@ -162,11 +166,7 @@ export function Emby({
         </Button>
       </div>
       <Notice error={error} />
-      {session.mode === "demo" ? (
-        <Empty>
-          连接服务并在设置中配置 Emby 后，可查看媒体库、最新入库与继续观看。
-        </Empty>
-      ) : data ? (
+      {data ? (
         <>
           {data.warnings.map((w, i) => (
             <Notice key={i} error={w} />
@@ -232,7 +232,7 @@ export function Emby({
                     <button
                       key={i.id}
                       className="poster-card"
-                      onClick={() => open(media(i))}
+                      onClick={() => { if (!demo) open(media(i)); }}
                     >
                       <div className="poster-art">
                         <EmbyArtwork

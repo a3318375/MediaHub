@@ -14,6 +14,8 @@ import { APIKeys } from "./APIKeys";
 import { MediaLibrarySettings } from "./MediaLibrarySettings";
 import { ResourceSettings } from "./ResourceSettings";
 
+import { embyDemoEnabled } from "../../mocks/emby-dashboard";
+
 export function ServerSettings({
   session,
   onSession,
@@ -37,7 +39,7 @@ export function ServerSettings({
       />
       <div hidden={tab !== "basic"}>
         <SettingsForm
-          sections={["tmdb", "emby", "115"]}
+          sections={embyDemoEnabled ? ["tmdb", "115"] : ["tmdb", "emby", "115"]}
           session={session}
           basic
         />
